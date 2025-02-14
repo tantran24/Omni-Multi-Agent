@@ -2,12 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.endpoints import router
 
-app = FastAPI(title="Omni Multi Agent API")
+app = FastAPI()
 
-# Add CORS middleware to allow requests from the React frontend running on localhost:3000
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000"],  # React default port
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

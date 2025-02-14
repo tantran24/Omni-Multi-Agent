@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ChatBox from "./components/ChatBox";
 import MessageInput from "./components/MessageInput";
+import GPTConfig from "./components/GPTConfig";
 import styled from "styled-components";
 import "./App.css";
 import { chatWithLLM } from "./services/api";
@@ -13,41 +14,62 @@ const AppContainer = styled.div`
 `;
 
 const App = () => {
-  // Initialize messages from localStorage
-  const [messages, setMessages] = useState(() => {
-    const stored = localStorage.getItem("chatMessages");
-    return stored ? JSON.parse(stored) : [];
+  const [messages, setMessages] = useState([]);
+  const [isConfigured, setIsConfigured] = useState(() => {
+    // Check localStorage for configuration state
+    return localStorage.getItem("gptConfigured") === "true";
   });
 
-  // Save messages to localStorage on each update
-  useEffect(() => {
-    localStorage.setItem("chatMessages", JSON.stringify(messages));
-  }, [messages]);
-
   const handleSendMessage = async (text) => {
-    setMessages((prev) => [...prev, { text, isUser: true }]);
-    const data = await chatWithLLM(text);
-    setMessages((prev) => [...prev, { text: data.response, isUser: false }]);
+    try {
+      console.log("Sending message:", text); // Debug log
+
+      // Add user message
+      setMessages((prev) => [...prev, { text, isUser: true }]);
+
+      // Get response from backend
+      const response = await chatWithLLM(text);
+      console.log("Response:", response); // Debug log
+
+      if (response && response.response) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            text: response.response,
+            isUser: false,
+          },
+        ]);
+      } else {
+        throw new Error("Invalid response format");
+      }
+    } catch (error) {
+      console.error("Error details:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          text: `Error: ${error.response?.data?.detail || error.message}`,
+          isUser: false,
+        },
+      ]);
+    }
   };
 
-  const handleAttachFile = (files) => {
-    // Handle file attachments
-    console.log(files);
+  const handleGPTConfigured = () => {
+    setIsConfigured(true);
+    localStorage.setItem("gptConfigured", "true");
   };
 
   return (
     <div className="app-container">
       <header className="header">
         <h1>Omni Multi-Agent ChatBot</h1>
+        {!isConfigured && <GPTConfig onConfigured={handleGPTConfigured} />}
       </header>
       <main className="chat-area">
         <ChatBox messages={messages} />
       </main>
       <footer className="input-area">
-        <MessageInput
-          onSendMessage={handleSendMessage}
-          onAttachFile={handleAttachFile}
-        />
+        <MessageInput onSendMessage={handleSendMessage} />
       </footer>
     </div>
   );
