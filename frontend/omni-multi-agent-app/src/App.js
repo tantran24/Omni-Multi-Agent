@@ -1,48 +1,56 @@
-import React, { useState } from "react";
-import { chatWithLLM, speakText, listenAudio, generateImage } from "./services/api";
+import React, { useState, useEffect } from "react";
+import ChatBox from "./components/ChatBox";
+import MessageInput from "./components/MessageInput";
+import styled from "styled-components";
+import "./App.css";
+import { chatWithLLM } from "./services/api";
+
+const AppContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+`;
 
 const App = () => {
-  const [input, setInput] = useState("");
-  const [response, setResponse] = useState("");
-  const [image, setImage] = useState("");
+  // Initialize messages from localStorage
+  const [messages, setMessages] = useState(() => {
+    const stored = localStorage.getItem("chatMessages");
+    return stored ? JSON.parse(stored) : [];
+  });
 
-  const handleChatSubmit = async () => {
-    const result = await chatWithLLM(input);
-    setResponse(result.response);
+  // Save messages to localStorage on each update
+  useEffect(() => {
+    localStorage.setItem("chatMessages", JSON.stringify(messages));
+  }, [messages]);
+
+  const handleSendMessage = async (text) => {
+    setMessages((prev) => [...prev, { text, isUser: true }]);
+    const data = await chatWithLLM(text);
+    setMessages((prev) => [...prev, { text: data.response, isUser: false }]);
   };
 
-  const handleSpeak = async () => {
-    await speakText(input);
-  };
-
-  const handleListen = async () => {
-    const result = await listenAudio();
-    setResponse(result.text);
-  };
-
-  const handleImageGen = async () => {
-    const result = await generateImage(input);
-    setImage(result.file);
+  const handleAttachFile = (files) => {
+    // Handle file attachments
+    console.log(files);
   };
 
   return (
-    <div>
-      <h1>Omni Multi Agent</h1>
-      <input
-        type="text"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Enter your prompt"
-      />
-      <button onClick={handleChatSubmit}>Chat with LLM</button>
-      <button onClick={handleSpeak}>Speak</button>
-      <button onClick={handleListen}>Listen</button>
-      <button onClick={handleImageGen}>Generate Image</button>
-      <p>Response: {response}</p>
-      {image && <img src={image} alt="Generated" />}
+    <div className="app-container">
+      <header className="header">
+        <h1>Omni Multi-Agent ChatBot</h1>
+      </header>
+      <main className="chat-area">
+        <ChatBox messages={messages} />
+      </main>
+      <footer className="input-area">
+        <MessageInput
+          onSendMessage={handleSendMessage}
+          onAttachFile={handleAttachFile}
+        />
+      </footer>
     </div>
   );
 };
 
 export default App;
-

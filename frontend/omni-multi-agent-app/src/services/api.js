@@ -2,9 +2,13 @@ import axios from "axios";
 
 const API_URL = "http://localhost:8000";
 
-export const chatWithLLM = async (prompt) => {
-  const response = await axios.post(`${API_URL}/chat`, { prompt });
-  return response.data;
+export const chatWithLLM = (input) => {
+  return new Promise((resolve) => {
+    // Simulate network delay
+    setTimeout(() => {
+      resolve({ response: `Simulated response for: ${input}` });
+    }, 500);
+  });
 };
 
 export const speakText = async (text) => {
