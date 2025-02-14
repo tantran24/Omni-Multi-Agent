@@ -5,3 +5,5 @@ langgraph
 openai
 tiktoken
 requests
+langchain-community 
+langchain-core
