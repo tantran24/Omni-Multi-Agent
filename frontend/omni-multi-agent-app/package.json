@@ -8,7 +8,11 @@
     "react-dom": "^19.0.0",
     "react-dropzone": "^11.3.4",
     "react-scripts": "^5.0.1",
-    "styled-components": "^5.3.11"
+    "react-markdown": "^8.0.7",
+    "remark-math": "^5.1.1",
+    "rehype-katex": "^7.0.0",
+    "katex": "^0.16.9",
+    "styled-components": "^6.1.1"
   },
   "scripts": {
     "start": "react-scripts start",

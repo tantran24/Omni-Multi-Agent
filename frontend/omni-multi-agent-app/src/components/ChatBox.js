@@ -1,5 +1,10 @@
 import React from "react";
 import styled from "styled-components";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import { formatModelOutput } from "../utils/formatOutput";
+import "katex/dist/katex.min.css";
 
 const ChatContainer = styled.div`
   display: flex;
@@ -28,6 +33,24 @@ const MessageBubble = styled.div`
   border-bottom-${({ isUser }) => (isUser ? "right" : "left")}-radius: 0;
 `;
 
+const MessageContent = styled(ReactMarkdown)`
+  word-wrap: break-word;
+  white-space: pre-wrap;
+
+  code {
+    background: #f0f0f0;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+
+  pre {
+    background: #f0f0f0;
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+  }
+`;
+
 const ChatBox = ({ messages }) => {
   return (
     <ChatContainer className="chat-box">
@@ -37,7 +60,12 @@ const ChatBox = ({ messages }) => {
           isUser={message.isUser}
           className={`chat-message ${message.isUser ? "user" : "bot"}`}
         >
-          {message.text}
+          <MessageContent
+            remarkPlugins={[remarkMath]}
+            rehypePlugins={[rehypeKatex]}
+          >
+            {formatModelOutput(message.text)}
+          </MessageContent>
         </MessageBubble>
       ))}
     </ChatContainer>

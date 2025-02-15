@@ -13,7 +13,7 @@ class GPTService:
         try:
             cls._client = AsyncOpenAI(api_key=api_key)
             logger.info("GPT client configured successfully")
-
+            # Test the API key with a simple request
             test_response = cls._client.completions.create(
                 model="text-davinci-003",
                 prompt="test",
