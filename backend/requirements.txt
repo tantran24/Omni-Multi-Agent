@@ -11,3 +11,7 @@ Pillow
 SpeechRecognition
 pyttsx3
 langchain-ollama
+diffusers
+transformers
+torch
+accelerate

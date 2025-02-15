@@ -1,10 +1,18 @@
+from diffusers import StableDiffusionPipeline
+import torch
 from PIL import Image
-import requests
-from io import BytesIO
 
 class ImageAgent:
-    def generate_image(self, prompt: str):
-        url = f"https://api.deepai.org/api/text2img"
-        response = requests.post(url, data={'text': prompt}, headers={'api-key': 'YOUR_API_KEY'})
-        image = Image.open(BytesIO(response.content))
+    def __init__(self):
+        self.model_id = "OnomaAIResearch/Illustrious-xl-early-release-v0"
+        self.pipe = StableDiffusionPipeline.from_pretrained(
+            self.model_id,
+            torch_dtype=torch.float16,
+            use_safetensors=True
+        )
+        if torch.cuda.is_available():
+            self.pipe = self.pipe.to("cuda")
+
+    def generate_image(self, prompt: str) -> Image.Image:
+        image = self.pipe(prompt).images[0]
         return image

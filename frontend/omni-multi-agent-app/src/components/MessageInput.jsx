@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import styled from "styled-components";
+import { FaMicrophone, FaStop, FaFileUpload } from "react-icons/fa";
 
 const InputContainer = styled.div`
   display: flex;
@@ -8,6 +9,7 @@ const InputContainer = styled.div`
   background: white;
   width: 100%;
   max-width: 800px;
+  align-items: center;
 `;
 
 const Input = styled.input`
@@ -17,27 +19,54 @@ const Input = styled.input`
   border-radius: 4px;
 `;
 
-const SendButton = styled.button`
-  padding: 10px 20px;
-  background: linear-gradient(135deg, #ff7e5f, #feb47b);
+const IconButton = styled.button`
+  padding: 10px;
   border: none;
-  border-radius: 4px;
-  color: white;
+  border-radius: 50%;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${(props) => (props.isRecording ? "#ff4444" : "#f0f0f0")};
+  color: ${(props) => (props.isRecording ? "white" : "black")};
 
   &:hover {
-    background: linear-gradient(135deg, #e66a53, #e0a97d);
+    opacity: 0.8;
   }
 `;
 
-const MessageInput = ({ onSendMessage }) => {
+const FileInput = styled.input`
+  display: none;
+`;
+
+const MessageInput = ({ onSendMessage, onSpeechInput, onFileUpload }) => {
   const [message, setMessage] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const fileInputRef = React.useRef();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (message.trim()) {
       onSendMessage(message);
       setMessage("");
+    }
+  };
+
+  const toggleRecording = async () => {
+    if (!isRecording) {
+      setIsRecording(true);
+      const text = await onSpeechInput();
+      if (text) {
+        setMessage((prev) => prev + " " + text);
+      }
+    }
+    setIsRecording(false);
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      onFileUpload(file);
     }
   };
 
@@ -49,7 +78,23 @@ const MessageInput = ({ onSendMessage }) => {
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type your message..."
         />
-        <SendButton type="submit">Send</SendButton>
+        <IconButton
+          type="button"
+          isRecording={isRecording}
+          onClick={toggleRecording}
+        >
+          {isRecording ? <FaStop /> : <FaMicrophone />}
+        </IconButton>
+        <IconButton type="button" onClick={() => fileInputRef.current.click()}>
+          <FaFileUpload />
+        </IconButton>
+        <FileInput
+          ref={fileInputRef}
+          type="file"
+          onChange={handleFileSelect}
+          accept="image/*,audio/*"
+        />
+        <IconButton type="submit">Send</IconButton>
       </InputContainer>
     </form>
   );

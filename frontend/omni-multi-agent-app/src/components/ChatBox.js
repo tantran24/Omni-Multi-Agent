@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import styled from "styled-components";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
@@ -52,22 +52,38 @@ const MessageContent = styled(ReactMarkdown)`
 `;
 
 const ChatBox = ({ messages }) => {
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
   return (
     <ChatContainer className="chat-box">
-      {messages.map((message, index) => (
-        <MessageBubble
-          key={index}
-          isUser={message.isUser}
-          className={`chat-message ${message.isUser ? "user" : "bot"}`}
-        >
-          <MessageContent
-            remarkPlugins={[remarkMath]}
-            rehypePlugins={[rehypeKatex]}
+      <MessagesContainer>
+        {messages.map((message, index) => (
+          <MessageBubble
+            key={index}
+            isUser={message.isUser}
+            className={`chat-message ${message.isUser ? "user" : "bot"}`}
           >
-            {formatModelOutput(message.text)}
-          </MessageContent>
-        </MessageBubble>
-      ))}
+            <MessageContent
+              remarkPlugins={[remarkMath]}
+              rehypePlugins={[rehypeKatex]}
+            >
+              {formatModelOutput(message.text)}
+            </MessageContent>
+            <small className="message-time">
+              {new Date().toLocaleTimeString()}
+            </small>
+          </MessageBubble>
+        ))}
+        <div ref={messagesEndRef} />
+      </MessagesContainer>
     </ChatContainer>
   );
 };
