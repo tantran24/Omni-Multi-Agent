@@ -2,8 +2,7 @@ body {
   margin: 0;
   height: 100vh;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: linear-gradient(135deg, #f7f8fa, #e0e0e0);
 }
 
@@ -20,7 +19,16 @@ body {
 .header {
   background: linear-gradient(135deg, #ff7e5f, #feb47b);
   color: #fff;
-  padding: 20px;
+  padding: 1rem;
+  position: relative;
+  flex-shrink: 0;
+  background-size: 200% 200%;
+  animation: gradientShift 15s ease infinite;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.5rem;
   text-align: center;
 }
 
@@ -51,22 +59,26 @@ body {
   font-size: 1rem;
   line-height: 1.4;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
 }
 
 .chat-message.bot {
-  background: #f0f0f0;
-  color: #000;
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(0, 0, 0, 0.87);
   align-self: flex-start;
   border-bottom-left-radius: 5px;
   margin-right: auto;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .chat-message.user {
-  background: #007bff;
+  background: rgba(255, 126, 95, 0.9);
   color: #fff;
   align-self: flex-end;
   border-bottom-right-radius: 5px;
   margin-left: auto;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Custom scrollbar styling */
@@ -91,8 +103,11 @@ body {
   display: flex;
   justify-content: center; /* Added to center horizontally */
   align-items: center; /* Added to center vertically */
-  padding: 10px;
+  padding: 1rem;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.8);
   border-top: 1px solid #ddd;
+  flex-shrink: 0;
 }
 
 .input-area input {
@@ -110,10 +125,12 @@ body {
   color: #fff;
   border-radius: 4px;
   cursor: pointer;
+  transition: transform 0.2s ease;
 }
 
 .input-area button:hover {
   background: linear-gradient(135deg, #e66a53, #e0a97d);
+  transform: translateY(-2px);
 }
 
 .clear-chat-btn {
@@ -121,16 +138,18 @@ body {
   right: 20px;
   top: 20px;
   padding: 8px 16px;
-  background: #dc3545;
+  background: #ff7e5f;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .clear-chat-btn:hover {
-  background: #c82333;
+  background: #ff6b4a;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .App {
@@ -169,5 +188,99 @@ body {
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .header {
+    padding: 0.75rem;
+  }
+
+  .header h1 {
+    font-size: 1.2rem;
+  }
+
+  .chat-message {
+    max-width: 85%;
+  }
+
+  .input-area {
+    padding: 0.75rem;
+  }
+}
+
+/* Scrollbar styling */
+*::-webkit-scrollbar {
+  width: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+@media (forced-colors: active) {
+  .app-container {
+    forced-color-adjust: none;
+    background: Canvas;
+    border: 1px solid CanvasText;
+  }
+
+  .header {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .chat-message {
+    border: 1px solid CanvasText;
+  }
+
+  .chat-message.bot {
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .chat-message.user {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .input-area {
+    background: Canvas;
+    border-color: CanvasText;
+  }
+
+  .input-area button,
+  .clear-chat-btn {
+    background: ButtonFace;
+    color: ButtonText;
+    border: 1px solid ButtonText;
+  }
+
+  .input-area button:hover,
+  .clear-chat-btn:hover {
+    background: Highlight;
+    color: HighlightText;
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
   }
 }

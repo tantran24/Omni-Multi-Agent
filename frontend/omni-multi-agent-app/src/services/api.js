@@ -2,7 +2,6 @@ import axios from "axios";
 
 const API_URL = "http://localhost:8000";
 
-// Create axios instance with default config
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -12,11 +11,7 @@ const api = axios.create({
 
 export const configureGPT = async (apiKey) => {
   try {
-    console.log("Configuring GPT with API key...");
-    const response = await api.post("/config/gpt", {
-      api_key: apiKey,
-    });
-    console.log("Configuration response:", response.data);
+    const response = await api.post("/config/gpt", { api_key: apiKey });
     return response.data;
   } catch (error) {
     console.error("Configuration error:", error.response?.data || error);
@@ -26,11 +21,7 @@ export const configureGPT = async (apiKey) => {
 
 export const chatWithLLM = async (message) => {
   try {
-    console.log("Sending chat message:", { message });
-    const response = await api.post("/chat", {
-      message: message,
-    });
-    console.log("Chat response:", response.data);
+    const response = await api.post("/chat", { message });
     return response.data;
   } catch (error) {
     console.error("Chat error:", error.response?.data || error);
@@ -38,48 +29,16 @@ export const chatWithLLM = async (message) => {
   }
 };
 
-export const speakText = async (text) => {
+export const textToSpeech = async (text) => {
   try {
-    await api.post("/speak", { text });
-    return true;
+    const response = await api.post("/speak", { text: text.toString().trim() });
+    if (response.data?.status === "success") return true;
+    throw new Error(response.data?.detail || "Text to speech failed");
   } catch (error) {
-    console.error("Text to speech error:", error);
-    throw error;
-  }
-};
-
-export const listenAudio = async () => {
-  const response = await api.post("/listen");
-  return response.data;
-};
-
-export const generateImage = async (prompt) => {
-  try {
-    const response = await api.post("/generate-image", { prompt });
-    return response.data;
-  } catch (error) {
-    console.error("Image generation error:", error);
-    throw error;
-  }
-};
-
-export const sendChatMessage = async (message) => {
-  try {
-    const response = await fetch(`${API_URL}/chat`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to send chat message");
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Error sending chat message:", error);
+    console.error(
+      "Text to speech error:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
@@ -94,20 +53,12 @@ export const startSpeechToText = async () => {
   }
 };
 
-export const textToSpeech = async (text) => {
+export const generateImage = async (prompt) => {
   try {
-    const response = await api.post("/speak", {
-      text: text.toString().trim(),
-    });
-    if (response.data && response.data.status === "success") {
-      return true;
-    }
-    throw new Error(response.data?.detail || "Text to speech failed");
+    const response = await api.post("/generate-image", { prompt });
+    return response.data;
   } catch (error) {
-    console.error(
-      "Text to speech error:",
-      error.response?.data || error.message
-    );
+    console.error("Image generation error:", error);
     throw error;
   }
 };
@@ -117,9 +68,7 @@ export const uploadFile = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
     const response = await api.post("/upload-file", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+      headers: { "Content-Type": "multipart/form-data" },
     });
     return response.data;
   } catch (error) {

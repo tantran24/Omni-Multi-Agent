@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import ChatBox from "./components/ChatBox";
 import MessageInput from "./components/MessageInput";
 import GPTConfig from "./components/GPTConfig";
@@ -20,6 +21,7 @@ const App = () => {
     // Check localStorage for configuration state
     return localStorage.getItem("gptConfigured") === "true";
   });
+  const [isTyping, setIsTyping] = useState(false);
 
   // Save messages to localStorage whenever they change
   useEffect(() => {
@@ -28,14 +30,12 @@ const App = () => {
 
   const handleSendMessage = async (text) => {
     try {
-      if (!text || !text.trim()) {
-        throw new Error("Message cannot be empty");
-      }
+      if (!text || !text.trim()) return;
 
-      // Add user message
       setMessages((prev) => [...prev, { text, isUser: true }]);
+      setIsTyping(true);
 
-      // Get response from backend
+      await new Promise((resolve) => setTimeout(resolve, 500));
       const response = await chatWithLLM(text);
 
       if (response && response.response) {
@@ -45,30 +45,40 @@ const App = () => {
           console.warn("TTS failed but continuing with chat:", ttsError);
         }
 
-        setMessages((prev) => [
-          ...prev,
-          {
-            text: response.response,
-            isUser: false,
-          },
-        ]);
-      } else {
-        throw new Error("Invalid response format");
+        // Create a local copy of the response for the typing effect
+        const fullResponse = response.response;
+        const totalLength = fullResponse.length;
+
+        // Add an initial bot message
+        setMessages((prev) => [...prev, { text: "", isUser: false }]);
+
+        // Update the message character by character
+        for (let i = 0; i <= totalLength; i++) {
+          const currentText = fullResponse.slice(0, i);
+          setMessages((prevMessages) => {
+            const newMessages = [...prevMessages];
+            newMessages[newMessages.length - 1] = {
+              text: currentText,
+              isUser: false,
+            };
+            return newMessages;
+          });
+
+          // Add delay between characters
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
       }
     } catch (error) {
-      console.error("Error in handleSendMessage:", error);
       setMessages((prev) => [
         ...prev,
         {
-          text: `Error: ${
-            error.response?.data?.detail ||
-            error.message ||
-            "An unexpected error occurred"
-          }`,
+          text: `Error: ${error.message || "An unexpected error occurred"}`,
           isUser: false,
           isError: true,
         },
       ]);
+    } finally {
+      setIsTyping(false);
     }
   };
 
@@ -122,25 +132,28 @@ const App = () => {
   };
 
   return (
-    <div className="app-container">
-      <header className="header">
+    <motion.div
+      className="app-container"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="header">
         <h1>Omni Multi-Agent ChatBot</h1>
         {!isConfigured && <GPTConfig onConfigured={handleGPTConfigured} />}
         <button className="clear-chat-btn" onClick={clearChat}>
           Clear Chat
         </button>
-      </header>
-      <main className="chat-area">
-        <ChatBox messages={messages} />
-      </main>
-      <footer className="input-area">
+      </div>
+      <ChatBox messages={messages} isTyping={isTyping} />
+      <div className="input-area">
         <MessageInput
           onSendMessage={handleSendMessage}
           onSpeechInput={handleSpeechInput}
           onFileUpload={handleFileUpload}
         />
-      </footer>
-    </div>
+      </div>
+    </motion.div>
   );
 };
 
