@@ -6,9 +6,9 @@
     "cra-template": "1.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-dropzone": "^11.3.4",
     "react-scripts": "^5.0.1",
-    "styled-components": "^5.3.3",
-    "react-dropzone": "^11.3.4"
+    "styled-components": "^5.3.11"
   },
   "scripts": {
     "start": "react-scripts start",

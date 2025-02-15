@@ -20,39 +20,23 @@ class GPTConfig(BaseModel):
 class ChatMessage(BaseModel):
     message: str
 
-@router.post("/config/gpt")
-async def configure_gpt(config: GPTConfig):
-    try:
-        print(f"Received API key configuration request") # Debug log
-        if not config.api_key:
-            raise HTTPException(status_code=400, detail="API key cannot be empty")
-            
-        GPTService.set_api_key(config.api_key)
-        print("API key configured successfully") # Debug log
-        return {"status": "success"}
-    except Exception as e:
-        print(f"Error configuring API key: {str(e)}") # Debug log
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/chat")
 async def chat(chat_message: ChatMessage):
     try:
-        print(f"Received message: {chat_message.message}")  # Debug log
+        print(f"Received message: {chat_message.message}") 
         
-        if not GPTService._client:  # Changed from _api_key to _client
-            raise HTTPException(status_code=400, detail="API key not configured")
-            
         if not chat_message.message:
             raise HTTPException(status_code=400, detail="Message cannot be empty")
             
-        response = await GPTService.chat(chat_message.message)
-        print(f"GPT response: {response}")  # Debug log
+        response = llm_service.process_prompt(chat_message.message)
+        print(f"Ollama response: {response}")  
         
         return {"response": response}
     except Exception as e:
-        print(f"Error in chat endpoint: {str(e)}")  # Debug log
+        print(f"Error in chat endpoint: {str(e)}")  
         raise HTTPException(status_code=500, detail=str(e))
-
+    
 @router.post("/speak")
 async def speak(text: str):
     tts_service.process_text(text)
@@ -68,4 +52,41 @@ async def generate_image(prompt: str):
     image = image_service.generate_image(prompt)
     image.save("generated_image.png")
     return {"status": "image generated", "file": "generated_image.png"}
+
+
+@router.post("/config/gpt")
+async def configure_gpt(config: GPTConfig):
+    try:
+        print(f"Received API key configuration request") 
+        if not config.api_key:
+            raise HTTPException(status_code=400, detail="API key cannot be empty")
+            
+        GPTService.set_api_key(config.api_key)
+        print("API key configured successfully") 
+        return {"status": "success"}
+    except Exception as e:
+        print(f"Error configuring API key: {str(e)}") 
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
+@router.post("/chat_with_gpt")
+async def chat(chat_message: ChatMessage):
+    try:
+        print(f"Received message: {chat_message.message}")  
+        
+        if not GPTService._client: 
+            raise HTTPException(status_code=400, detail="API key not configured")
+            
+        if not chat_message.message:
+            raise HTTPException(status_code=400, detail="Message cannot be empty")
+            
+        response = await GPTService.chat(chat_message.message)
+        print(f"GPT response: {response}")  
+        
+        return {"response": response}
+    except Exception as e:
+        print(f"Error in chat endpoint: {str(e)}")  
+        raise HTTPException(status_code=500, detail=str(e))
 

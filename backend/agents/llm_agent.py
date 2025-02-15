@@ -1,10 +1,10 @@
-from langchain.chat_models import ChatOpenAI
+from langchain_ollama.llms import OllamaLLM
 from langgraph.graph import StateGraph
-from langchain.schema import SystemMessage, HumanMessage
+from langchain.schema import HumanMessage
 
 class ChatAgent:
-    def __init__(self, model="gpt-3.5-turbo"):
-        self.llm = ChatOpenAI(model_name=model)
+    def __init__(self, model="deepseek-r1:1.5b"):
+        self.llm = OllamaLLM(model=model)
 
     def chat(self, prompt: str):
-        return self.llm([HumanMessage(content=prompt)]).content
+        return self.llm.invoke(prompt)

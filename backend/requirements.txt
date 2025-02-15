@@ -8,5 +8,6 @@ requests
 langchain-community 
 langchain-core
 Pillow
-SoeechRecognition
+SpeechRecognition
 pyttsx3
+langchain-ollama
