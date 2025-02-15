@@ -2,11 +2,11 @@ from langchain_ollama.llms import OllamaLLM
 from .prompts import get_system_prompt
 from tools.image_tools import generate_image
 import re
+from .graph import process_message
 
 class ChatAgent:
-    def __init__(self, model="deepseek-r1:1.5b"):
-        self.llm = OllamaLLM(model=model)
-        self.system_prompt = get_system_prompt()
+    def __init__(self):
+        pass
 
     def _is_image_request(self, text: str) -> bool:
         image_keywords = [
@@ -27,16 +27,13 @@ class ChatAgent:
         return text
 
     def chat(self, prompt: str) -> str:
-        if self._is_image_request(prompt):
-            try:
-                image_path = generate_image(self._extract_image_prompt(prompt))
-                return f"[Image Agent] I've generated your image! You can find it here: {image_path}"
-            except Exception as e:
-                return f"[Image Agent] Error generating image: {str(e)}"
-
         try:
-            full_prompt = f"{self.system_prompt}\n\nUser: {prompt}"
-            response = self.llm.invoke(full_prompt)
+            if self._is_image_request(prompt):
+                image_prompt = self._extract_image_prompt(prompt)
+                image_path = generate_image(image_prompt)
+                return f"Generated image: {image_path}"
+            
+            response = process_message(prompt)
             return response.replace('\r\n', '\n')
         except Exception as e:
             return f"[Chat Agent] Error processing request: {str(e)}"

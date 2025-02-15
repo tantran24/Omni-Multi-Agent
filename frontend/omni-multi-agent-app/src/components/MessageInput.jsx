@@ -17,6 +17,10 @@ const Input = styled.input`
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
+  &:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+  }
 `;
 
 const IconButton = styled.button`
@@ -39,16 +43,32 @@ const FileInput = styled.input`
   display: none;
 `;
 
+const SendButton = styled.button`
+  padding: 10px;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  &:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+  }
+`;
+
 const MessageInput = ({ onSendMessage, onSpeechInput, onFileUpload }) => {
   const [message, setMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const fileInputRef = React.useRef();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (message.trim()) {
+    if (message.trim() && !isTyping) {
+      setIsTyping(true);
       onSendMessage(message);
       setMessage("");
+      setIsTyping(false);
     }
   };
 
@@ -77,6 +97,7 @@ const MessageInput = ({ onSendMessage, onSpeechInput, onFileUpload }) => {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type your message..."
+          disabled={isTyping}
         />
         <IconButton
           type="button"
@@ -94,7 +115,9 @@ const MessageInput = ({ onSendMessage, onSpeechInput, onFileUpload }) => {
           onChange={handleFileSelect}
           accept="image/*,audio/*"
         />
-        <IconButton type="submit">Send</IconButton>
+        <SendButton type="submit" disabled={isTyping || !message.trim()}>
+          Send
+        </SendButton>
       </InputContainer>
     </form>
   );

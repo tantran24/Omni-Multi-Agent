@@ -36,18 +36,15 @@ async def chat(chat_message: ChatMessage):
             
         response = llm_service.process_prompt(chat_message.message)
         
-        if not response:
-            raise HTTPException(status_code=500, detail="No response from LLM service")
-        
-        # Check if response contains an image generation result
-        if "generated_image.png" in response:
+        # Check for image generation response
+        if "Generated image:" in response:
+            image_path = response.split("Generated image:")[-1].strip()
             return {
-                "response": response,
+                "response": "Image generated successfully",
                 "has_image": True,
-                "image_path": "generated_image.png"
+                "image_path": image_path
             }
-            
-        logging.info(f"Sending response: {response}")
+        
         return {"response": response, "has_image": False}
         
     except Exception as e:

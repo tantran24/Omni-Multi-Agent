@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import ChatBox from "./components/ChatBox";
 import MessageInput from "./components/MessageInput";
@@ -22,16 +22,21 @@ const App = () => {
     return localStorage.getItem("gptConfigured") === "true";
   });
   const [isTyping, setIsTyping] = useState(false);
+  const messageQueue = useRef([]);
+  const isProcessing = useRef(false);
 
   // Save messages to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem("chatHistory", JSON.stringify(messages));
   }, [messages]);
 
-  const handleSendMessage = async (text) => {
-    try {
-      if (!text || !text.trim()) return;
+  const processMessageQueue = async () => {
+    if (isProcessing.current || messageQueue.current.length === 0) return;
 
+    isProcessing.current = true;
+    const text = messageQueue.current.shift();
+
+    try {
       setMessages((prev) => [...prev, { text, isUser: true }]);
       setIsTyping(true);
 
@@ -45,28 +50,8 @@ const App = () => {
           console.warn("TTS failed but continuing with chat:", ttsError);
         }
 
-        // Create a local copy of the response for the typing effect
         const fullResponse = response.response;
-        const totalLength = fullResponse.length;
-
-        // Add an initial bot message
-        setMessages((prev) => [...prev, { text: "", isUser: false }]);
-
-        // Update the message character by character
-        for (let i = 0; i <= totalLength; i++) {
-          const currentText = fullResponse.slice(0, i);
-          setMessages((prevMessages) => {
-            const newMessages = [...prevMessages];
-            newMessages[newMessages.length - 1] = {
-              text: currentText,
-              isUser: false,
-            };
-            return newMessages;
-          });
-
-          // Add delay between characters
-          await new Promise((resolve) => setTimeout(resolve, 20));
-        }
+        setMessages((prev) => [...prev, { text: fullResponse, isUser: false }]);
       }
     } catch (error) {
       setMessages((prev) => [
@@ -79,6 +64,17 @@ const App = () => {
       ]);
     } finally {
       setIsTyping(false);
+      isProcessing.current = false;
+      processMessageQueue(); // Process next message if any
+    }
+  };
+
+  const handleSendMessage = async (text) => {
+    if (!text || !text.trim()) return;
+
+    messageQueue.current.push(text);
+    if (!isProcessing.current) {
+      processMessageQueue();
     }
   };
 
