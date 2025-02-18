@@ -1,99 +1,108 @@
 from typing import Annotated, Dict, TypedDict, List
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
-from langgraph.graph import StateGraph, Graph
+from langgraph.graph import StateGraph, Graph, START, END
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_ollama.llms import OllamaLLM
+from langchain_ollama import ChatOllama
 from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain_core.utils.function_calling import convert_to_openai_tool
-from .tools import AVAILABLE_TOOLS, generate_image
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.prebuilt import create_react_agent
+from langchain_core.runnables import RunnableConfig
+
+from .tools import AVAILABLE_TOOLS
+
+
 
 class AgentState(TypedDict):
-    messages: List[BaseMessage]
-    next: str
+    messages: Annotated[list, add_messages]
+
 
 def create_agent_graph() -> Graph:
-    # Convert our tools to OpenAI format
-    tools = [
-        convert_to_openai_tool(AVAILABLE_TOOLS[0])  # Make generate_image the primary tool
-    ]
+    memory = MemorySaver()
 
+    tools = [AVAILABLE_TOOLS[0]]
+
+    role_prompt = ("""You are an AI assistant with image generation capabilities.
+                IMPORTANT: For ANY request involving images, pictures, drawings, or visualization:
+                1. You MUST use the generate_image tool
+                2. DO NOT describe or explain the image
+                3. DO NOT use creative writing or roleplay
+                4. IMMEDIATELY call generate_image with the prompt
+
+                Example:
+                Human: Can you draw a cat?
+                Assistant: Calling: generate_image("A cute cat sitting and looking at the camera")
+                """)
     prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are an AI assistant with image generation capabilities.
-IMPORTANT: For ANY request involving images, pictures, drawings, or visualization:
-1. You MUST use the generate_image tool
-2. DO NOT describe or explain the image
-3. DO NOT use creative writing or roleplay
-4. IMMEDIATELY call generate_image with the prompt
-
-Example:
-Human: Can you draw a cat?
-Assistant: Calling: generate_image("A cute cat sitting and looking at the camera")
-"""),
+        ("system", role_prompt),
         MessagesPlaceholder(variable_name="messages"),
-        ("human", "{input}"),
+        MessagesPlaceholder("agent_scratchpad"),
     ])
 
-    # Initialize the language model
-    llm = OllamaLLM(model="deepseek-r1:1.5b")
+    llm = ChatOllama(model="MFDoom/deepseek-r1-tool-calling:1.5b")
+    agent = create_react_agent(llm, tools, prompt=prompt)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
-    # Create the agent
-    agent = create_openai_tools_agent(llm, tools, prompt)
-    agent_executor = AgentExecutor(agent=agent, tools=tools)
-
-    # Define state transitions
     def should_continue(state: AgentState) -> str:
         messages = state["messages"]
         last_message = messages[-1].content if messages else ""
         
-        # Check if the last message indicates a need for image generation
         if any(keyword in last_message.lower() for keyword in 
                ['generate image', 'create image', 'draw', 'make a picture']):
             return "generate_image"
         return "end"
+    
 
-    def generate_image_node(state: AgentState) -> AgentState:
+    def chatbot(state: AgentState,
+                config: RunnableConfig,) -> AgentState:
         messages = state["messages"]
-        last_message = messages[-1].content
-        
-        # Direct image generation
-        image_url = generate_image(last_message)
-        response = f"Generated image: {image_url}"
-        
-        state["messages"].append(AIMessage(content=response))
-        return state
+        if len(messages) > 1:
+            last_message = messages[-1].content
+        else:
+            last_message = messages
 
-    def process_normal(state: AgentState) -> AgentState:
-        messages = state["messages"]
-        last_message = messages[-1].content
-        
         response = agent_executor.invoke({
-            "input": last_message,
-            "messages": messages[:-1]  # Exclude the last message as we're passing it as input
-        })
-        
+            "messages": messages[-1] 
+        }, config)
+
         state["messages"].append(AIMessage(content=response["output"]))
         return state
 
-    # Create the graph
+
+
     workflow = StateGraph(AgentState)
 
-    # Add nodes
-    workflow.add_node("process", process_normal)
-    workflow.add_node("generate_image", generate_image_node)
+    workflow.add_node("chatbot", chatbot)
 
-    # Add edges
-    workflow.add_edge("process", "generate_image")
-    workflow.add_edge("generate_image", "end")
-    workflow.add_edge("process", "end")
+    tool_node = ToolNode(tools=[tools[0]])
+    workflow.add_node("tools", tool_node)
+    workflow.add_conditional_edges("chatbot", tools_condition)
 
-    # Set entry point
-    workflow.set_entry_point("process")
+    workflow.add_edge("tools", "chatbot")
+    workflow.add_edge(START, "chatbot")
 
-    return workflow.compile()
+    return workflow.compile(checkpointer=memory)
+
+
+from IPython.display import Image, display
+
 
 def process_message(message: str) -> str:
+
+    try:
+        display(Image(graph.get_graph().draw_mermaid_png()))
+    except Exception:
+        # This requires some extra dependencies and is optional
+        pass
+    config = {"configurable": {"thread_id": "1"}}
     graph = create_agent_graph()
     result = graph.invoke({
         "messages": [HumanMessage(content=message)],
-    })
+    }, config, stream_mode="values")
+
     return result["messages"][-1].content
+
+if __name__ == "__main__":
+    process_message("DKKKK")
