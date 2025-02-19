@@ -4,9 +4,8 @@ from PIL import Image
 
 class ImageAgent:
     def __init__(self):
-        self.model_id = "OnomaAIResearch/Illustrious-xl-early-release-v0"
         self.pipe = StableDiffusionPipeline.from_pretrained(
-            self.model_id,
+            "stable-diffusion-v1-5",  # Using a generic base model
             torch_dtype=torch.float16,
             use_safetensors=True
         )

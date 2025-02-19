@@ -1,108 +1,141 @@
-from typing import Annotated, Dict, TypedDict, List
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
-from langgraph.graph import StateGraph, Graph, START, END
+from typing import Annotated, TypedDict, List, Union
+from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, HumanMessage
+from langgraph.graph import StateGraph
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_ollama import ChatOllama
-from langchain.agents import AgentExecutor, create_openai_tools_agent
-from langchain_core.utils.function_calling import convert_to_openai_tool
+from langchain.agents import AgentExecutor, create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.message import add_messages
-from langgraph.prebuilt import ToolNode, tools_condition
-from langgraph.prebuilt import create_react_agent
-from langchain_core.runnables import RunnableConfig
-
+from core.config import Config
 from .tools import AVAILABLE_TOOLS
-
-
+from langchain.agents import AgentType, Tool
+import requests.exceptions
+import logging
 
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
+    chat_history: List[BaseMessage]
+    agent_scratchpad: List[BaseMessage]
 
+def create_agent_graph() -> AgentExecutor:
+    def _check_ollama():
+        try:
+            response = requests.get(
+                Config.OLLAMA_HEALTH_CHECK_URL,
+                timeout=Config.OLLAMA_CONNECTION_TIMEOUT
+            )
+            response.raise_for_status()
+            return True
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Ollama connection error: {str(e)}")
+            return False
 
-def create_agent_graph() -> Graph:
-    memory = MemorySaver()
+    if not _check_ollama():
+        raise ConnectionError("Could not connect to Ollama server. Please ensure it's running and try again.")
 
-    tools = [AVAILABLE_TOOLS[0]]
+    messages = [
+        SystemMessage(content="""You are a helpful AI assistant that can use tools to accomplish tasks.
 
-    role_prompt = ("""You are an AI assistant with image generation capabilities.
-                IMPORTANT: For ANY request involving images, pictures, drawings, or visualization:
-                1. You MUST use the generate_image tool
-                2. DO NOT describe or explain the image
-                3. DO NOT use creative writing or roleplay
-                4. IMMEDIATELY call generate_image with the prompt
+You have access to the following tools:
+{tools}
 
-                Example:
-                Human: Can you draw a cat?
-                Assistant: Calling: generate_image("A cute cat sitting and looking at the camera")
-                """)
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", role_prompt),
-        MessagesPlaceholder(variable_name="messages"),
-        MessagesPlaceholder("agent_scratchpad"),
-    ])
+The available tool names are: {tool_names}
 
-    llm = ChatOllama(model="MFDoom/deepseek-r1-tool-calling:1.5b")
-    agent = create_react_agent(llm, tools, prompt=prompt)
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+Follow this exact format for every response:
+1. Thought: Your internal reasoning about the task.
+2. Action: The exact tool name to use (if no tool is needed, write "No Action").
+3. Action Input: The input to the tool (if applicable).
+4. Observation: The result produced by the tool.
+... (repeat if using multiple tools)
+Finally, when you are ready to answer the user, provide:
+Thought: Your final internal reasoning.
+Final Answer: Your answer to the user.
 
-    def should_continue(state: AgentState) -> str:
-        messages = state["messages"]
-        last_message = messages[-1].content if messages else ""
-        
-        if any(keyword in last_message.lower() for keyword in 
-               ['generate image', 'create image', 'draw', 'make a picture']):
-            return "generate_image"
-        return "end"
-    
+Important: Every "Thought:" entry must be immediately followed by an "Action:" line.
+"""),
+        MessagesPlaceholder(variable_name="chat_history"),
+        ("human", "{input}"),
+        ("ai", "{agent_scratchpad}")
+    ]
 
-    def chatbot(state: AgentState,
-                config: RunnableConfig,) -> AgentState:
-        messages = state["messages"]
-        if len(messages) > 1:
-            last_message = messages[-1].content
-        else:
-            last_message = messages
+    prompt = ChatPromptTemplate.from_messages(messages)
 
-        response = agent_executor.invoke({
-            "messages": messages[-1] 
-        }, config)
+    llm = ChatOllama(
+        model=Config.LLM_MODEL,
+        temperature=Config.LLM_TEMPERATURE,
+        base_url=Config.OLLAMA_BASE_URL,
+        timeout=Config.LLM_TIMEOUT,
+        retry_on_failure=True,
+        num_retries=Config.OLLAMA_MAX_RETRIES
+    )
 
-        state["messages"].append(AIMessage(content=response["output"]))
-        return state
+    # Format tool descriptions
+    tool_strings = "\n".join([f"{tool.name}: {tool.description}" for tool in AVAILABLE_TOOLS])
+    tool_names = ", ".join([tool.name for tool in AVAILABLE_TOOLS])
 
+    # Create the agent with the correct type and handle the scratchpad properly
+    agent = create_react_agent(
+        llm=llm,
+        tools=AVAILABLE_TOOLS,
+        prompt=prompt.partial(
+            tools=tool_strings,
+            tool_names=tool_names
+        )
+    )
 
+    def _format_chat_history(chat_history) -> List[BaseMessage]:
+        if not chat_history:
+            return []
+        if isinstance(chat_history[0], BaseMessage):
+            return chat_history
+        return [
+            HumanMessage(content=msg) if i % 2 == 0 else AIMessage(content=msg)
+            for i, msg in enumerate(chat_history)
+        ]
 
-    workflow = StateGraph(AgentState)
+    def _format_scratchpad(actions) -> List[BaseMessage]:
+        if not actions:
+            return []
+        formatted_actions = []
+        for action, observation in actions:
+            formatted_actions.extend([
+                AIMessage(content=f"Thought: {action.log}"),
+                HumanMessage(content=f"Observation: {observation}")
+            ])
+        return formatted_actions
 
-    workflow.add_node("chatbot", chatbot)
+    executor = AgentExecutor(
+        agent=agent,
+        tools=AVAILABLE_TOOLS,
+        verbose=True,
+        max_iterations=Config.MAX_ITERATIONS,
+        handle_parsing_errors=True,
+        early_stopping_method=Config.EARLY_STOPPING_METHOD,
+        return_intermediate_steps=True
+    )
 
-    tool_node = ToolNode(tools=[tools[0]])
-    workflow.add_node("tools", tool_node)
-    workflow.add_conditional_edges("chatbot", tools_condition)
+    def invoke_with_structured_args(inputs: dict) -> dict:
+        formatted_inputs = {
+            "input": inputs["input"],
+            "chat_history": _format_chat_history(inputs.get("chat_history", [])),
+            "agent_scratchpad": _format_scratchpad(inputs.get("intermediate_steps", []))
+        }
+        try:
+            return executor.invoke(formatted_inputs)
+        except Exception as e:
+            logging.error(f"Agent execution error: {str(e)}")
+            raise
 
-    workflow.add_edge("tools", "chatbot")
-    workflow.add_edge(START, "chatbot")
+    return invoke_with_structured_args
 
-    return workflow.compile(checkpointer=memory)
-
-
-from IPython.display import Image, display
-
-
-def process_message(message: str) -> str:
-
+def process_message(message: str, agent_executor) -> str:
     try:
-        display(Image(graph.get_graph().draw_mermaid_png()))
-    except Exception:
-        # This requires some extra dependencies and is optional
-        pass
-    config = {"configurable": {"thread_id": "1"}}
-    graph = create_agent_graph()
-    result = graph.invoke({
-        "messages": [HumanMessage(content=message)],
-    }, config, stream_mode="values")
-
-    return result["messages"][-1].content
-
-if __name__ == "__main__":
-    process_message("DKKKK")
+        result = agent_executor({
+            "input": message,
+            "chat_history": []
+        })
+        return result.get("output", "Error processing request")
+    except ConnectionError as e:
+        return "Error: Ollama server is not running. Please start Ollama first."
+    except Exception as e:
+        return f"I encountered an error: {str(e)}"

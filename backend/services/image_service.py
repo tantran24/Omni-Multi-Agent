@@ -1,4 +1,4 @@
-from ..agents.image_agent import ImageAgent
+from agents.image_agent import ImageAgent
 
 class ImageService:
     def __init__(self):

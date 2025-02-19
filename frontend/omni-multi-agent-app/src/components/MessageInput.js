@@ -20,11 +20,17 @@ const Input = styled.input`
 
 const Button = styled.button`
   padding: 10px 20px;
-  background-color: #007bff;
+  background: linear-gradient(135deg, #ff7e5f, #feb47b);
   color: #fff;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    background: linear-gradient(135deg, #e66a53, #e0a97d);
+    transform: translateY(-2px);
+  }
 `;
 
 const MessageInput = ({ onSendMessage, onAttachFile }) => {

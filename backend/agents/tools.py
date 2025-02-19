@@ -1,87 +1,28 @@
 from datetime import datetime
-from langchain_core.tools import tool, BaseTool
-from pydantic import Field
-from ..services.image_service import ImageService
+from langchain_core.tools import tool
+from typing import List
+from langchain.tools import Tool
 
-@tool
-def get_time_tool():
-    """Tool that get current time!"""
-    date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    return date_time
+@tool("get_time")
+def get_time_tool(dummy: str = "") -> str:
+    """Tool that gets current time. No input required."""
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+@tool("generate_image")
+def generate_image(prompt: str) -> str:
+    """Generate an image based on the given prompt."""
+    # Placeholder for image generation logic
+    return f"Generated image for prompt: {prompt}"
 
-@tool
-def generate_image_tool(prompt):
-    """Tool that generate image by prompt!"""
-    image_service = ImageService()
-    image = image_service.generate_image(prompt)
-    image.save("generated_image.png")
-    return "Image generated successfully and saved as 'generated_image.png'"
-
-       
-AVAILABLE_TOOLS = [
+# Combine all tools into a single list
+AVAILABLE_TOOLS: List[Tool] = [
     get_time_tool,
-    generate_image_tool,
+    Tool(
+        name="generate_image",
+        func=generate_image,
+        description="Generates an image based on a text description. Input should be a detailed description of the desired image."
+    )
 ]
-
-
-from typing import Optional, Type
-from pydantic import BaseModel, Field
-
-from langchain.callbacks.manager import (
-    AsyncCallbackManagerForToolRun,
-    CallbackManagerForToolRun,
-)
-
-
-class SearchInput(BaseModel):
-    query: str = Field(description="should be a search query")
-
-
-class CalculatorInput(BaseModel):
-    a: int = Field(description="first number")
-    b: int = Field(description="second number")
-
-
-class CustomSearchTool(BaseTool):
-    name: str = "custom_search"
-    description: str = "useful for when you need to answer questions about current events"
-    args_schema: Type[BaseModel] = SearchInput
-
-    def _run(
-        self, query: str, run_manager: Optional[CallbackManagerForToolRun] = None
-    ) -> str:
-        """Use the tool."""
-        return "LangChain"
-
-    async def _arun(
-        self, query: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None
-    ) -> str:
-        """Use the tool asynchronously."""
-        raise NotImplementedError("custom_search does not support async")
-
-
-class CustomCalculatorTool(BaseTool):
-    name: str = "Calculator"
-    description: str = "useful for when you need to answer questions about math"
-    args_schema: Type[BaseModel] = CalculatorInput
-    return_direct: bool = True
-
-    def _run(
-        self, a: int, b: int, run_manager: Optional[CallbackManagerForToolRun] = None
-    ) -> str:
-        """Use the tool."""
-        return a * b
-
-    async def _arun(
-        self,
-        a: int,
-        b: int,
-        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
-    ) -> str:
-        """Use the tool asynchronously."""
-        raise NotImplementedError("Calculator does not support async")
-    
 
 if __name__=="__main__":
     get_time_tool.invoke({})

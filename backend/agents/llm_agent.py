@@ -1,37 +1,42 @@
-from langchain.schema import AIMessage, HumanMessage
-from langgraph.checkpoint.memory import MemorySaver
-
-import re
-from .graph import process_message
+from typing import Optional
+from langchain.memory import ConversationBufferMemory  # Fixed import
+from .graph import create_agent_graph
+from core.config import Config
+import logging
+from langchain_core.messages import HumanMessage, AIMessage
 
 class ChatAgent:
     def __init__(self):
-        self.memory = MemorySaver()
+        # Update ConversationBufferMemory initialization
+        self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True, migration_guide="https://python.langchain.com/docs/versions/migrating_memory")
+        self.agent_executor = create_agent_graph()
 
     def chat(self, prompt: str) -> str:
         try:
-            # if self._is_image_request(prompt):
-                # image_prompt = self._extract_image_prompt(prompt)
-                # image_path = generate_image(image_prompt)
-                # return f"Generated image: {image_path}"
+            if not prompt.strip():
+                return "Please provide a valid input"
             
-            # Lưu message của user vào memory
-            self.memory.chat_memory.add_user_message(prompt)
-
-            # Gửi prompt có ngữ cảnh trước đó
-            history = self.memory.load_memory_variables({})["history"]
-            print("AAA")
-            response = process_message(prompt)
-            print("dddd")
-
-
-            # Lưu phản hồi của AI vào memory
-            self.memory.chat_memory.add_ai_message(response)
-
-            return response.replace('\r\n', '\n')
+            # Get chat history from memory using the updated memory_key
+            history = self.memory.load_memory_variables({})["chat_history"]
+            
+            # Format the input with proper message structure
+            response = self.agent_executor({
+                "input": prompt,
+                "chat_history": history,
+                "intermediate_steps": []
+            })
+            
+            if isinstance(response, dict) and "output" in response:
+                output = response["output"]
+                # Save the interaction to memory
+                self.memory.save_context({"input": prompt}, {"output": output})
+                return output
+            else:
+                raise ValueError("Invalid response format from agent")
+                
         except Exception as e:
-            return f"[Chat Agent] Error processing request: {str(e)}"
-
+            logging.error(f"Chat error: {str(e)}")
+            return f"Error: {str(e)}"
 
 def main():
     agent = ChatAgent()
@@ -47,5 +52,5 @@ def main():
         response = agent.chat(user_input)
         print(f"Agent: {response}")
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     main()
