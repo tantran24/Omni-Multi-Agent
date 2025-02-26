@@ -1,12 +1,14 @@
 from datetime import datetime
-from langchain_core.tools import tool
-from typing import List
+from langchain_core.tools import tool, BaseTool
+from typing import List, Dict, Any
 from langchain.tools import Tool
+
 
 @tool("get_time")
 def get_time_tool(dummy: str = "") -> str:
     """Tool that gets current time. No input required."""
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 
 @tool("generate_image")
 def generate_image(prompt: str) -> str:
@@ -14,15 +16,23 @@ def generate_image(prompt: str) -> str:
     # Placeholder for image generation logic
     return f"Generated image for prompt: {prompt}"
 
-# Combine all tools into a single list
-AVAILABLE_TOOLS: List[Tool] = [
-    get_time_tool,
-    Tool(
-        name="generate_image",
-        func=generate_image,
-        description="Generates an image based on a text description. Input should be a detailed description of the desired image."
-    )
-]
 
-if __name__=="__main__":
-    get_time_tool.invoke({})
+# Create proper tool objects for LangGraph compatibility
+get_time_tool_obj = Tool(
+    name="get_time",
+    func=get_time_tool,
+    description="Gets the current time. No input required.",
+)
+
+generate_image_tool = Tool(
+    name="generate_image",
+    func=generate_image,
+    description="Generates an image based on a text description. Input should be a detailed description of the desired image.",
+)
+
+# Combine all tools into a single list
+AVAILABLE_TOOLS: List[BaseTool] = [get_time_tool_obj, generate_image_tool]
+
+if __name__ == "__main__":
+    print(get_time_tool.invoke({}))
+    print(generate_image_tool.invoke({"prompt": "A beautiful sunset"}))
