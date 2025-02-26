@@ -5,3 +5,13 @@ langgraph
 openai
 tiktoken
 requests
+langchain-community 
+langchain-core
+Pillow
+SpeechRecognition
+pyttsx3
+langchain-ollama
+diffusers
+transformers
+torch
+accelerate

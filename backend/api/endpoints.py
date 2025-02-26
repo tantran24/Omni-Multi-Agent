@@ -1,34 +1,32 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+import logging
 from services.llm_service import LLMService
-from services.tts_service import TTService
-from services.stt_service import STTService
-from services.image_service import ImageService
+from services.gpt_service import GPTService
 
 router = APIRouter()
-
 llm_service = LLMService()
-tts_service = TTService()
-stt_service = STTService()
-image_service = ImageService()
 
-@router.post("/chat")
-async def chat(prompt: str):
-    response = llm_service.process_prompt(prompt)
-    return {"response": response}
+class ChatMessage(BaseModel):
+    message: str
 
-@router.post("/speak")
-async def speak(text: str):
-    tts_service.process_text(text)
-    return {"status": "success"}
+class ChatResponse(BaseModel):
+    response: str
 
-@router.post("/listen")
-async def listen():
-    result = stt_service.process_audio()
-    return {"text": result}
-
-@router.post("/generate-image")
-async def generate_image(prompt: str):
-    image = image_service.generate_image(prompt)
-    image.save("generated_image.png")
-    return {"status": "image generated", "file": "generated_image.png"}
+@router.post("/chat", response_model=ChatResponse)
+async def chat(chat_message: ChatMessage):
+    try:
+        if not chat_message.message:
+            raise HTTPException(status_code=400, detail="Message cannot be empty")
+            
+        # Use await since process_message is now async
+        response = await llm_service.process_message(chat_message.message)
+        if not response:
+            raise HTTPException(status_code=500, detail="Empty response from LLM service")
+            
+        return ChatResponse(response=response)
+        
+    except Exception as e:
+        logging.error(f"Error processing chat message: {str(e)}")
+        return ChatResponse(response=str(e))
 
