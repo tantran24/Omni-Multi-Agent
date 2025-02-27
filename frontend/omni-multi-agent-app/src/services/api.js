@@ -7,23 +7,18 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 30000, // Add 30s timeout
 });
 
 export const chatWithLLM = async (message) => {
   try {
-    console.log("Sending message to backend:", message); // Debug log
     const response = await api.post("/chat", { message });
-
-    console.log("Response from backend:", response.data); // Debug log
 
     if (!response.data?.response) {
       throw new Error("Invalid response format");
     }
 
-    return { response: response.data.response };
+    return { response: response.data.response, image: response.data.image };
   } catch (error) {
-    console.error("Chat error:", error); // Debug log
     throw new Error(
       error.response?.data?.detail ||
         error.message ||

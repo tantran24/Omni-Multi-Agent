@@ -2,6 +2,9 @@ from datetime import datetime
 from langchain_core.tools import tool, BaseTool
 from typing import List, Dict, Any
 from langchain.tools import Tool
+from services.image_service import ImageService
+
+image_service = ImageService()
 
 
 @tool("get_time")
@@ -13,8 +16,11 @@ def get_time_tool(dummy: str = "") -> str:
 @tool("generate_image")
 def generate_image(prompt: str) -> str:
     """Generate an image based on the given prompt."""
-    # Placeholder for image generation logic
-    return f"Generated image for prompt: {prompt}"
+    try:
+        result = image_service.generate_image(prompt)
+        return f"Image generated successfully: {result['url']}"
+    except Exception as e:
+        return f"Error generating image: {str(e)}"
 
 
 # Create proper tool objects for LangGraph compatibility

@@ -119,7 +119,6 @@ const Dot = styled.div`
   }
 `;
 
-// Add debounce utility function
 const debounce = (func, wait) => {
   let timeout;
   return function executedFunction(...args) {
@@ -132,7 +131,13 @@ const debounce = (func, wait) => {
   };
 };
 
-// Add message animation variants
+const MessageImage = styled.img`
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 8px 0;
+`;
+
 const messageVariants = {
   initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0 },
@@ -158,12 +163,21 @@ const ChatBox = ({ messages, isTyping }) => {
 
   const speak = useCallback((text) => {
     if ("speechSynthesis" in window) {
-      // Cancel any ongoing speech
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       window.speechSynthesis.speak(utterance);
     }
   }, []);
+
+  const renderers = {
+    img: ({ src, alt }) => (
+      <MessageImage
+        src={`http://localhost:8000${src}`}
+        alt={alt}
+        loading="lazy"
+      />
+    ),
+  };
 
   return (
     <ChatContainer>
@@ -185,11 +199,11 @@ const ChatBox = ({ messages, isTyping }) => {
                 <MessageContent
                   remarkPlugins={[remarkMath]}
                   rehypePlugins={[rehypeKatex]}
+                  components={renderers}
                 >
                   {formatModelOutput(message.text)}
                 </MessageContent>
               </MessageBubble>
-              {/* Only show speak button for bot messages */}
               {!message.isUser && (
                 <SpeakButton
                   onClick={() => speak(message.text)}
@@ -215,7 +229,6 @@ const ChatBox = ({ messages, isTyping }) => {
   );
 };
 
-// Add prop types validation
 ChatBox.propTypes = {
   messages: PropTypes.arrayOf(
     PropTypes.shape({
