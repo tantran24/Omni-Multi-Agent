@@ -25,13 +25,18 @@ const App = () => {
       const response = await chatWithLLM(text);
 
       if (response && response.response) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            text: response.response,
-            isUser: false,
-          },
-        ]);
+        const botMessage = {
+          text: response.response,
+          isUser: false,
+        };
+
+        if (response.image) {
+          const serverUrl =
+            process.env.REACT_APP_API_URL || "http://localhost:8000";
+          botMessage.image = `${serverUrl}${response.image}`;
+        }
+
+        setMessages((prev) => [...prev, botMessage]);
       }
     } catch (error) {
       setMessages((prev) => [

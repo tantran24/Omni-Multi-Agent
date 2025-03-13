@@ -17,7 +17,10 @@ export const chatWithLLM = async (message) => {
       throw new Error("Invalid response format");
     }
 
-    return { response: response.data.response, image: response.data.image };
+    return {
+      response: response.data.response,
+      image: response.data.image,
+    };
   } catch (error) {
     throw new Error(
       error.response?.data?.detail ||

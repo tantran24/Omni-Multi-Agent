@@ -1,6 +1,5 @@
 from diffusers import DiffusionPipeline, LCMScheduler
 import torch
-from PIL import Image
 import os
 from datetime import datetime
 import gc
@@ -26,7 +25,7 @@ class ImageAgent:
             base_model_id = "stabilityai/stable-diffusion-xl-base-1.0"
             repo_name = "tianweiy/DMD2"
             ckpt_name = "dmd2_sdxl_4step_lora_fp16.safetensors"
-            
+
             self.pipe = DiffusionPipeline.from_pretrained(
                 base_model_id,
                 torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
@@ -36,9 +35,18 @@ class ImageAgent:
             lora_path = hf_hub_download(repo_name, ckpt_name)
             self.pipe.load_lora_weights(lora_path)
             self.pipe.fuse_lora(lora_scale=1.0)
-            if self.device == "cuda" and hasattr(self.pipe, "enable_xformers_memory_efficient_attention"):
+
+            if self.device == "cuda" and hasattr(
+                self.pipe, "enable_xformers_memory_efficient_attention"
+            ):
                 self.pipe.enable_xformers_memory_efficient_attention()
-            self.pipe.scheduler = LCMScheduler.from_config(self.pipe.scheduler.config)
+
+            scheduler_config = self.pipe.scheduler.config
+            scheduler_config.num_inference_steps = 4
+            scheduler_config.timestep_spacing = "trailing"
+            scheduler_config.steps_offset = 0
+            scheduler_config.use_karras_sigmas = True
+            self.pipe.scheduler = LCMScheduler.from_config(scheduler_config)
 
     def _clear_memory(self):
         if self.device == "cuda":
@@ -54,9 +62,8 @@ class ImageAgent:
                 prompt=prompt,
                 num_inference_steps=4,
                 guidance_scale=0,
-                timesteps=[999, 749, 499, 249],
-                height=512,
                 width=512,
+                height=512,
             ).images[0]
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

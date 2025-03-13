@@ -1,80 +1,57 @@
-import logging
-from core.config import Config
-from agents.llm_agent import ChatAgent
-from services.image_service import ImageService
-import requests
-import time
-import re
+import asyncio
 from typing import Optional
+from core.graph import create_agent_graph
+from utils.agents.router_agent import ChatAgent
+import logging
+from langchain_core.runnables import RunnableConfig
+
+logger = logging.getLogger(__name__)
 
 
 class LLMService:
     def __init__(self):
-        self.chat_agent = None
-        self.image_service = ImageService()
-        self.base_url = Config.OLLAMA_BASE_URL
-        self.error_state = None
-        self._initialize_chat_agent()
+        self.chat_agent: Optional[ChatAgent] = None
+        self.initialized = False
+        self.initializing = False
+        self._initialize_lock = asyncio.Lock()
 
-    def _check_ollama_connection(self) -> bool:
-        for attempt in range(Config.OLLAMA_MAX_RETRIES):
-            try:
-                response = requests.get(
-                    Config.OLLAMA_HEALTH_CHECK_URL,
-                    timeout=Config.OLLAMA_CONNECTION_TIMEOUT,
-                )
-                if response.status_code == 200:
-                    return True
-            except requests.exceptions.RequestException as e:
-                logging.warning(f"Attempt {attempt + 1} failed: {str(e)}")
-                if attempt < Config.OLLAMA_MAX_RETRIES - 1:
-                    time.sleep(Config.OLLAMA_RETRY_DELAY)
-        return False
+    async def ensure_initialized(self):
+        """Ensure the service is initialized in a thread-safe manner"""
+        if not self.initialized and not self.initializing:
+            async with self._initialize_lock:
+                if not self.initialized:
+                    try:
+                        self.initializing = True
+                        logger.info("Initializing LLM service...")
 
-    def _initialize_chat_agent(self):
-        if self._check_ollama_connection():
-            try:
-                self.chat_agent = ChatAgent()
-                self.error_state = None
-                logging.info("Successfully connected to Ollama server")
-            except Exception as e:
-                self.error_state = f"Failed to initialize chat agent: {str(e)}"
-                logging.error(self.error_state)
-        else:
-            self.error_state = (
-                "Could not connect to Ollama server after multiple attempts"
-            )
-            logging.error(self.error_state)
+                        # Create the agent graph
+                        agent_graph = create_agent_graph()
+
+                        # Create and configure the chat agent
+                        self.chat_agent = ChatAgent()
+                        self.chat_agent.set_agent_executor(agent_graph)
+
+                        self.initialized = True
+                        logger.info("LLM service initialization complete")
+                    except Exception as e:
+                        logger.error(f"Initialization error: {str(e)}")
+                        raise
+                    finally:
+                        self.initializing = False
 
     async def process_message(self, message: str) -> str:
-        if self.chat_agent is None:
-            if self.error_state:
-                return f"Error: {self.error_state}"
-            self._initialize_chat_agent()
-            if self.chat_agent is None:
-                return "Error: Could not connect to Ollama server. Please ensure it's running."
+        """Process a message through the agent graph"""
+        await self.ensure_initialized()
+
+        if not self.chat_agent:
+            raise RuntimeError("Chat agent initialization failed")
 
         try:
-            logging.info(f"Processing message: {message}")
-            response = self.chat_agent.chat(message)
+            config = RunnableConfig(recursion_limit=25)
 
-            image_match = re.search(r"\[Tool Used\] generate_image\((.*?)\)", response)
-            if image_match:
-                prompt = image_match.group(1)
-                try:
-                    image_result = self.image_service.generate_image(prompt)
-                    response = response.replace(
-                        f"[Tool Used] generate_image({prompt})",
-                        f'![Generated Image]({image_result["url"]})',
-                    )
-                except Exception as e:
-                    logging.error(f"Image generation error: {str(e)}")
-                    response += (
-                        f"\nSorry, there was an error generating the image: {str(e)}"
-                    )
-
-            logging.info(f"Response received: {response}")
-            return response
+            return await asyncio.get_event_loop().run_in_executor(
+                None, lambda: self.chat_agent.chat(message)
+            )
         except Exception as e:
-            logging.error(f"Error in LLM service: {str(e)}")
-            return f"Error: {str(e)}"
+            logger.error(f"Message processing error: {str(e)}")
+            raise

@@ -1,4 +1,11 @@
-import React, { useEffect, useRef, useCallback, memo, useMemo } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useCallback,
+  memo,
+  useMemo,
+  useState,
+} from "react";
 import PropTypes from "prop-types";
 import styled from "styled-components";
 import ReactMarkdown from "react-markdown";
@@ -49,6 +56,8 @@ const MessageBubble = styled(motion.div)`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin: 8px 0;
   transition: transform 0.2s ease;
+  width: fit-content;
+  min-width: 200px;
 
   &:hover {
     transform: translateY(-1px);
@@ -136,6 +145,59 @@ const MessageImage = styled.img`
   height: auto;
   border-radius: 8px;
   margin: 8px 0;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  display: block;
+
+  &:hover {
+    transform: scale(1.02);
+  }
+`;
+
+const ImageModal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: ${(props) => (props.$isOpen ? 1 : 0)};
+  pointer-events: ${(props) => (props.$isOpen ? "auto" : "none")};
+  transition: opacity 0.3s ease;
+`;
+
+const ModalImage = styled.img`
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+`;
+
+const CloseButton = styled.button`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #333;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #f0f0f0;
+  }
 `;
 
 const messageVariants = {
@@ -146,6 +208,7 @@ const messageVariants = {
 
 const ChatBox = ({ messages, isTyping }) => {
   const messagesEndRef = useRef(null);
+  const [modalImage, setModalImage] = useState(null);
 
   const scrollToBottomImmediate = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -169,12 +232,25 @@ const ChatBox = ({ messages, isTyping }) => {
     }
   }, []);
 
+  const handleImageClick = (imageUrl) => {
+    setModalImage(imageUrl);
+  };
+
+  const closeModal = () => {
+    setModalImage(null);
+  };
+
   const renderers = {
     img: ({ src, alt }) => (
       <MessageImage
-        src={`http://localhost:8000${src}`}
+        src={src}
         alt={alt}
         loading="lazy"
+        onClick={() => handleImageClick(src)}
+        onError={(e) => {
+          console.error("Image failed to load:", src);
+          e.target.style.display = "none";
+        }}
       />
     ),
   };
@@ -203,6 +279,22 @@ const ChatBox = ({ messages, isTyping }) => {
                 >
                   {formatModelOutput(message.text)}
                 </MessageContent>
+
+                {/* Separate image display if provided directly */}
+                {message.image && (
+                  <MessageImage
+                    src={message.image}
+                    alt="Generated Content"
+                    onClick={() => handleImageClick(message.image)}
+                    onError={(e) => {
+                      console.error(
+                        "Direct image failed to load:",
+                        message.image
+                      );
+                      e.target.style.display = "none";
+                    }}
+                  />
+                )}
               </MessageBubble>
               {!message.isUser && (
                 <SpeakButton
@@ -225,6 +317,12 @@ const ChatBox = ({ messages, isTyping }) => {
         )}
         <div ref={messagesEndRef} />
       </MessagesContainer>
+
+      {/* Image modal for viewing images larger */}
+      <ImageModal $isOpen={!!modalImage} onClick={closeModal}>
+        {modalImage && <ModalImage src={modalImage} alt="Full size view" />}
+        <CloseButton onClick={closeModal}>×</CloseButton>
+      </ImageModal>
     </ChatContainer>
   );
 };
@@ -234,6 +332,7 @@ ChatBox.propTypes = {
     PropTypes.shape({
       text: PropTypes.string.isRequired,
       isUser: PropTypes.bool.isRequired,
+      image: PropTypes.string, // Added image prop type
     })
   ).isRequired,
   isTyping: PropTypes.bool,
