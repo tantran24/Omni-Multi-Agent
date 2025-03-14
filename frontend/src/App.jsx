@@ -9,6 +9,7 @@ const App = () => {
     const saved = localStorage.getItem("chatHistory");
     return saved ? JSON.parse(saved) : [];
   });
+
   const [isTyping, setIsTyping] = useState(false);
 
   useEffect(() => {
@@ -19,8 +20,10 @@ const App = () => {
     if (!text || !text.trim()) return;
 
     try {
+
       setMessages((prev) => [...prev, { text, isUser: true }]);
       setIsTyping(true);
+
 
       const response = await chatWithLLM(text);
 
@@ -30,15 +33,18 @@ const App = () => {
           isUser: false,
         };
 
+
         if (response.image) {
           const serverUrl =
             process.env.REACT_APP_API_URL || "http://localhost:8000";
           botMessage.image = `${serverUrl}${response.image}`;
         }
 
+
         setMessages((prev) => [...prev, botMessage]);
       }
     } catch (error) {
+
       setMessages((prev) => [
         ...prev,
         {
@@ -51,7 +57,6 @@ const App = () => {
       setIsTyping(false);
     }
   };
-
   const clearHistory = () => {
     setMessages([]);
     localStorage.removeItem("chatHistory");
@@ -66,6 +71,7 @@ const App = () => {
         </button>
       </header>
       <ChatBox messages={messages} isTyping={isTyping} />
+
       <MessageInput onSendMessage={handleSendMessage} />
     </div>
   );

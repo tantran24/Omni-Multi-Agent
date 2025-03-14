@@ -8,14 +8,13 @@ import React, {
 } from "react";
 import PropTypes from "prop-types";
 import styled from "styled-components";
-import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatModelOutput } from "../utils/formatOutput";
 import { FaVolumeUp } from "react-icons/fa";
 import "katex/dist/katex.min.css";
+import { formatModelOutput } from "../utils/formatOutput";
+import debounce from 'lodash/debounce';
 
+// Styled Components
 const ChatContainer = styled.div`
   flex: 1;
   overflow-y: auto;
@@ -82,7 +81,7 @@ const SpeakButton = styled.button`
   }
 `;
 
-const MessageContent = styled(ReactMarkdown)`
+const MessageContent = styled.div`
   word-wrap: break-word;
   white-space: pre-wrap;
 
@@ -125,32 +124,6 @@ const Dot = styled.div`
     50% {
       transform: translateY(-5px);
     }
-  }
-`;
-
-const debounce = (func, wait) => {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-};
-
-const MessageImage = styled.img`
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px;
-  margin: 8px 0;
-  cursor: pointer;
-  transition: transform 0.3s ease;
-  display: block;
-
-  &:hover {
-    transform: scale(1.02);
   }
 `;
 
@@ -249,7 +222,7 @@ const ChatBox = ({ messages, isTyping }) => {
         onClick={() => handleImageClick(src)}
         onError={(e) => {
           console.error("Image failed to load:", src);
-          e.target.style.display = "none";
+          e.target.src = "/path/to/fallback-image.png"; // Fallback image
         }}
       />
     ),
@@ -273,8 +246,6 @@ const ChatBox = ({ messages, isTyping }) => {
                 layout
               >
                 <MessageContent
-                  remarkPlugins={[remarkMath]}
-                  rehypePlugins={[rehypeKatex]}
                   components={renderers}
                 >
                   {formatModelOutput(message.text)}
@@ -291,7 +262,7 @@ const ChatBox = ({ messages, isTyping }) => {
                         "Direct image failed to load:",
                         message.image
                       );
-                      e.target.style.display = "none";
+                      e.target.src = "/path/to/fallback-image.png"; // Fallback image
                     }}
                   />
                 )}
@@ -332,7 +303,7 @@ ChatBox.propTypes = {
     PropTypes.shape({
       text: PropTypes.string.isRequired,
       isUser: PropTypes.bool.isRequired,
-      image: PropTypes.string, // Added image prop type
+      image: PropTypes.string,
     })
   ).isRequired,
   isTyping: PropTypes.bool,

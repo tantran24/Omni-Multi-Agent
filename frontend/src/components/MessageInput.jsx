@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import { useDropzone } from "react-dropzone";
 
+// Styled components
 const InputContainer = styled.div`
   display: flex;
   align-items: center;
@@ -33,12 +34,16 @@ const Button = styled.button`
   }
 `;
 
+// MessageInput Component
 const MessageInput = ({ onSendMessage, onAttachFile }) => {
   const [message, setMessage] = useState("");
+
+  // Dropzone configuration
   const { getRootProps, getInputProps } = useDropzone({
     onDrop: (acceptedFiles) => onAttachFile(acceptedFiles),
   });
 
+  // Handle sending a message
   const handleSendMessage = () => {
     if (message.trim()) {
       onSendMessage(message);
@@ -46,6 +51,7 @@ const MessageInput = ({ onSendMessage, onAttachFile }) => {
     }
   };
 
+  // Handle pressing "Enter" key
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && message.trim()) {
       onSendMessage(message);
@@ -55,6 +61,7 @@ const MessageInput = ({ onSendMessage, onAttachFile }) => {
 
   return (
     <InputContainer>
+      {/* Text input for the message */}
       <Input
         type="text"
         value={message}
@@ -62,10 +69,14 @@ const MessageInput = ({ onSendMessage, onAttachFile }) => {
         onKeyDown={handleKeyDown}
         placeholder="Enter your message here"
       />
+
+      {/* File attachment button */}
       <div {...getRootProps()}>
         <input {...getInputProps()} />
         <Button>Attach Files</Button>
       </div>
+
+      {/* Send button */}
       <Button onClick={handleSendMessage}>Send</Button>
     </InputContainer>
   );
