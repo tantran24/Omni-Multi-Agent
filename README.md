@@ -56,7 +56,7 @@ The system is built with:
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/Omni-Multi-Agent.git
+git clone https://github.com/tantran24/Omni-Multi-Agent.git
 cd Omni-Multi-Agent
 ```
 
@@ -75,7 +75,7 @@ pip install -r requirements.txt
 4. Pull the required model:
 
 ```bash
-ollama pull llama3-groq-tool-use
+ollama pull PetrosStav/gemma3-tools:4b
 ```
 
 5. Run the backend server:
@@ -92,14 +92,14 @@ The server will start on http://localhost:8000
 1. Install Node.js dependencies:
 
 ```bash
-cd frontend/omni-multi-agent-app
+cd frontend
 npm install
 ```
 
 2. Start the development server:
 
 ```bash
-npm start
+npm run dev
 ```
 
 The frontend will be available at http://localhost:3000
