@@ -5,7 +5,7 @@ from typing import List
 class Config:
     HOST: str = "0.0.0.0"
     PORT: int = 8000
-    CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+    CORS_ORIGINS: List[str] = ["http://localhost:5173"]
 
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_API_URL: str = f"{OLLAMA_BASE_URL}/api"
@@ -14,7 +14,7 @@ class Config:
     OLLAMA_MAX_RETRIES: int = 3
     OLLAMA_RETRY_DELAY: int = 1
 
-    LLM_MODEL: str = "gemma3:4b"
+    LLM_MODEL: str = "PetrosStav/gemma3-tools:4b"
     LLM_TEMPERATURE: float = 1.0
     LLM_CONTEXT_LENGTH: int = 4096
     LLM_TIMEOUT: int = 120

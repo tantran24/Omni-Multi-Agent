@@ -79,7 +79,9 @@ def create_agent_graph():
                 updated_state["chat_history"] = (
                     chat_history + [human_message] + response["messages"]
                 )
-                updated_state["artifacts"] = response.get("artifacts", {})
+
+                if "artifacts" in response and response["artifacts"]:
+                    updated_state["artifacts"] = response["artifacts"]
 
                 return updated_state
 
@@ -99,6 +101,25 @@ def create_agent_graph():
         if current_agent is None:
             logger.info("No agent specified, defaulting to assistant")
             return "assistant"
+
+        # Handle image keyword detection as a fallback
+        if current_agent == "assistant":
+            user_input = state.get("input", "").lower()
+            image_keywords = [
+                "draw",
+                "image",
+                "picture",
+                "generate image",
+                "create image",
+                "visualize",
+                "create a picture",
+                "make an image",
+                "render",
+            ]
+
+            if any(keyword in user_input for keyword in image_keywords):
+                logger.info("Image keyword detected, routing to image agent instead")
+                return "image"
 
         # Convert to lowercase
         current_agent = current_agent.lower()
