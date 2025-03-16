@@ -12,7 +12,7 @@ from .prompts import (
     get_research_agent_prompt,
     get_planning_agent_prompt,
 )
-from .tools import available_tools, get_time_tool_obj, generate_image_tool_obj
+from .tools import get_tools_for_agent, get_time_tool, generate_image_tool
 import re
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,19 @@ class BaseAgent:
 
     def get_system_prompt(self) -> str:
         """Get the system prompt for this agent"""
-        return f"{get_system_prompt()}\n\nYou are the {self.agent_name}. Focus on your specialty."
+        # Include available tools in the system prompt
+        tools_desc = ""
+        if self.tools:
+            tools_desc = "\n\nYou have access to the following tools:\n"
+            for tool in self.tools:
+                tools_desc += f"- {tool.name}: {tool.description}\n"
+
+            tools_desc += (
+                "\nUse these tools when appropriate by formatting your response like:\n"
+            )
+            tools_desc += "[Tool Used] tool_name(parameter)"
+
+        return f"{get_system_prompt()}\n\nYou are the {self.agent_name}. Focus on your specialty.{tools_desc}"
 
     def process_response(self, content: str) -> Dict[str, Any]:
         """Process the LLM response and extract any artifacts or process tool calls"""
@@ -59,15 +71,15 @@ class BaseAgent:
 
     def process_tool_calls(self, content: str) -> str:
         """Process tool calls in the content"""
+        # Process get_time tool
         if "[Tool Used] get_time(" in content:
             try:
-                time_result = get_time_tool_obj.invoke({})
-                content = content.replace(
-                    "[Tool Used] get_time()", f"Current time: {time_result}"
-                )
-
+                time_result = get_time_tool.invoke({})
+                content = content.replace("[Tool Used] get_time()", time_result)
             except Exception as e:
+                logger.error(f"Error using get_time tool: {str(e)}")
                 content += f"\nError getting time: {str(e)}"
+
         return content
 
     def invoke(
@@ -79,14 +91,16 @@ class BaseAgent:
 
         system_prompt = self.get_system_prompt()
 
+        # Only include recent history for context
+        recent_history = chat_history[-4:] if len(chat_history) > 4 else chat_history
+
         messages = [
             SystemMessage(content=system_prompt),
-            *chat_history[-4:],  # Keep last 4 messages from history for context
+            *recent_history,
             message,
         ]
 
         response = self.llm.invoke(messages)
-
         processed = self.process_response(response.content)
 
         return {
@@ -117,6 +131,7 @@ class RouterAgent(BaseAgent):
             min_p=Config.LLM_MIN_P,
             repeat_penalty=Config.LLM_REPETITION_PENALTY,
         )
+        self.tools = []
 
     def get_system_prompt(self) -> str:
         """Get the specialized router prompt"""
@@ -148,8 +163,7 @@ class AssistantAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "assistant"
         self.agent_name = "Assistant Agent"
-
-        self.tools = [get_time_tool_obj]
+        self.tools = get_tools_for_agent("assistant")
 
     def get_system_prompt(self) -> str:
         """Get the specialized assistant prompt"""
@@ -163,6 +177,7 @@ class MathAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "math"
         self.agent_name = "Math Agent"
+        self.tools = []
 
     def get_system_prompt(self) -> str:
         """Get the specialized math prompt"""
@@ -176,6 +191,7 @@ class ResearchAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "research"
         self.agent_name = "Research Agent"
+        self.tools = []
 
     def get_system_prompt(self) -> str:
         """Get the specialized research prompt"""
@@ -189,6 +205,7 @@ class PlanningAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "planning"
         self.agent_name = "Planning Agent"
+        self.tools = []
 
     def get_system_prompt(self) -> str:
         """Get the specialized planning prompt"""
@@ -202,8 +219,7 @@ class ImageAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "image"
         self.agent_name = "Image Agent"
-
-        self.tools = [generate_image_tool_obj]
+        self.tools = get_tools_for_agent("image")
 
     def get_system_prompt(self) -> str:
         """Get the specialized image agent prompt"""
@@ -219,9 +235,10 @@ class ImageAgent(BaseAgent):
             try:
                 image_prompt = image_match.group(1).strip()
                 logger.info(f"Generating image with prompt: {image_prompt}")
-                image_path = generate_image_tool_obj.invoke({"prompt": image_prompt})
+                image_path = generate_image_tool.invoke(image_prompt)
                 artifacts = {"image": image_path}
                 # Add a reference to the image in the content
+                content = re.sub(r"\[Tool Used\] generate_image\([^)]+\)", "", content)
                 content += f"\n\n![Generated Image]({image_path})"
 
             except Exception as e:

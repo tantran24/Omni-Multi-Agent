@@ -4,13 +4,17 @@ import os
 from datetime import datetime
 import gc
 from huggingface_hub import hf_hub_download
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ImageAgent:
     def __init__(self):
         self.pipe = None
         self.images_dir = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "generated_images"
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            "generated_images",
         )
         os.makedirs(self.images_dir, exist_ok=True)
         self._setup_device()
@@ -19,9 +23,11 @@ class ImageAgent:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         if self.device == "cuda":
             torch.backends.cudnn.benchmark = True
+        logger.info(f"Using device: {self.device}")
 
     def _ensure_pipeline(self):
         if self.pipe is None:
+            logger.info("Initializing image generation pipeline...")
             base_model_id = "stabilityai/stable-diffusion-xl-base-1.0"
             repo_name = "tianweiy/DMD2"
             ckpt_name = "dmd2_sdxl_4step_lora_fp16.safetensors"
@@ -54,28 +60,27 @@ class ImageAgent:
             gc.collect()
 
     def generate_image(self, prompt: str) -> dict:
-        try:
-            self._ensure_pipeline()
-            self._clear_memory()
+        logger.info(f"Generating image for prompt: {prompt}")
+        self._ensure_pipeline()
+        self._clear_memory()
 
-            image = self.pipe(
-                prompt=prompt,
-                num_inference_steps=4,
-                guidance_scale=0,
-                width=512,
-                height=512,
-            ).images[0]
+        image = self.pipe(
+            prompt=prompt,
+            num_inference_steps=4,
+            guidance_scale=0,
+            width=512,
+            height=512,
+        ).images[0]
 
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"image_{timestamp}.png"
-            filepath = os.path.join(self.images_dir, filename)
-            image.save(filepath)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"image_{timestamp}.png"
+        filepath = os.path.join(self.images_dir, filename)
+        image.save(filepath)
+        logger.info(f"Image saved to {filepath}")
 
-            self._clear_memory()
+        self._clear_memory()
 
-            return {"filename": filename, "filepath": filepath}
-        except Exception as e:
-            raise Exception(f"Image generation failed: {str(e)}")
+        return {"filename": filename, "filepath": filepath}
 
     def __del__(self):
         self._clear_memory()
