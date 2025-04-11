@@ -65,11 +65,12 @@ const App = () => {
   return (
     <div className="app-container">
       <header className="header">
-        <h1>Omni Multi-Agent</h1>
-        <button className="clear-chat-btn" onClick={clearHistory}>
+        <h1 className="font-black text-6xl text-center">Omni Multi-Agent</h1>
+        <button className="clear-chat-btn float-right" onClick={clearHistory}>
           Clear Chat
         </button>
       </header>
+
       <ChatBox messages={messages} isTyping={isTyping} />
 
       <MessageInput onSendMessage={handleSendMessage} />

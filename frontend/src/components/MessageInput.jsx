@@ -1,37 +1,28 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import { useDropzone } from "react-dropzone";
+import { Paperclip } from "lucide-react";
+import { IconButton, Button } from "../utils/customizeButton"
+import VoiceRecorder from "./VoiceInput";
 
-// Styled components
 const InputContainer = styled.div`
+  width: 60%;
+  height: 10%;
   display: flex;
   align-items: center;
+  align-self: center;
   padding: 10px;
-  background-color: #fff;
   border-top: 1px solid #ddd;
+  flex-wrap: wrap;
+  justify-content: end;
+  margin:20px;
 `;
 
 const Input = styled.input`
-  flex: 1;
+  width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 5px;
-  margin-right: 10px;
-`;
-
-const Button = styled.button`
-  padding: 10px 20px;
-  background: linear-gradient(135deg, #ff7e5f, #feb47b);
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-
-  &:hover {
-    background: linear-gradient(135deg, #e66a53, #e0a97d);
-    transform: translateY(-2px);
-  }
 `;
 
 // MessageInput Component
@@ -59,6 +50,17 @@ const MessageInput = ({ onSendMessage, onAttachFile }) => {
     }
   };
 
+  // Xử lý kết quả từ voice recorder
+  const handleVoiceResult = (transcriptionText) => {
+    setMessage(currentMessage => {
+      // Nếu đã có text trong input, thêm khoảng trắng trước khi nối
+      if (currentMessage.trim()) {
+        return `${currentMessage.trim()} ${transcriptionText}`;
+      }
+      return transcriptionText;
+    });
+  };
+
   return (
     <InputContainer>
       {/* Text input for the message */}
@@ -73,8 +75,13 @@ const MessageInput = ({ onSendMessage, onAttachFile }) => {
       {/* File attachment button */}
       <div {...getRootProps()}>
         <input {...getInputProps()} />
-        <Button>Attach Files</Button>
+        <IconButton>
+          <Paperclip color="white" size={20} />
+        </IconButton>
       </div>
+
+      {/* Voice recorder with callback for results */}
+      <VoiceRecorder onResult={handleVoiceResult} />
 
       {/* Send button */}
       <Button onClick={handleSendMessage}>Send</Button>
