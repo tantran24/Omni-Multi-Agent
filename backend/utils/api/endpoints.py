@@ -95,5 +95,6 @@ async def transcribe(audio: UploadFile = File(...)):
         result = run(long_form_audio=temp_file_path)
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
-
+    finally:
+        os.remove(temp_file_path)
     return {"transcription": result}
