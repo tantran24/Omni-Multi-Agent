@@ -1,10 +1,15 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File
 from pydantic import BaseModel, Field
 import asyncio
 from services.llm_service import LLMService
 import re
 from typing import Optional
 import logging
+from fastapi.responses import JSONResponse
+import shutil
+import os
+
+from stt.decode import run
 
 logger = logging.getLogger(__name__)
 
@@ -75,3 +80,20 @@ async def ensure_llm_service_ready():
         await llm_service.ensure_initialized()
     except Exception as e:
         logger.error(f"Error ensuring LLM service is ready: {str(e)}")
+
+
+
+@router.post("/transcribe")
+async def transcribe(audio: UploadFile = File(...)):
+
+    temp_file_path = f"audioUpload/{audio.filename}"
+    print(os.path.isdir('audioUpload'))
+    with open(temp_file_path, "wb") as buffer:
+        shutil.copyfileobj(audio.file, buffer)
+
+    try:
+        result = run(long_form_audio=temp_file_path)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    return {"transcription": result}

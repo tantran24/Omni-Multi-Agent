@@ -26,6 +26,11 @@ app.mount(
     StaticFiles(directory="generated_images"),
     name="generated_images",
 )
+app.mount(
+    "/stt",
+    StaticFiles(directory="stt"),
+    name="stt",
+)
 
 
 @app.exception_handler(Exception)

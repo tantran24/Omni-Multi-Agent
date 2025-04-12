@@ -2,7 +2,6 @@ import { useRef, useState, useEffect } from "react";
 import { IconButton } from "../utils/customizeButton";
 import { Mic, Check, X, Timer } from "lucide-react";
 import { Popover } from 'react-tiny-popover'
-
 const VoiceRecorder = ({ onResult }) => {
     const [isRecording, setIsRecording] = useState(false);
     const [recordingTime, setRecordingTime] = useState(0);
@@ -102,7 +101,7 @@ const VoiceRecorder = ({ onResult }) => {
         try {
             setShowPopover(true);
 
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             streamRef.current = stream;
 
             const audioContext = new AudioContext();
@@ -153,15 +152,13 @@ const VoiceRecorder = ({ onResult }) => {
         }
 
         if (audioChunksRef.current.length > 0) {
-            const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
             try {
                 setIsProcessing(true);
 
                 const formData = new FormData();
-                formData.append("audio", audioBlob, "recording.webm");
-
-                const response = await fetch("/api/transcribe", {
+                formData.append("audio", audioBlob, "recording.wav");
+                const response = await fetch("http://127.0.0.1:8000/api/transcribe", {
                     method: "POST",
                     body: formData
                 });
@@ -172,8 +169,8 @@ const VoiceRecorder = ({ onResult }) => {
 
                 const data = await response.json();
 
-                if (data.text) {
-                    onResult(data.text);
+                if (data['transcription']) {
+                    onResult(data['transcription']);
                 } else {
                     console.error("API response missing text field:", data);
                 }
