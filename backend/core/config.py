@@ -1,12 +1,24 @@
 import os
 from typing import List
+from dotenv import load_dotenv
 
+load_dotenv(dotenv_path="backend/core/.env")
 
 class Config:
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     CORS_ORIGINS: List[str] = ["http://localhost:5173"]
 
+    LLM_PROVIDER = "google_ai_studio"
+
+    # Google AI Studio
+    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+    GOOGLE_MODEL = os.getenv("GOOGLE_MODEL", "gemini-pro")
+    # GOOGLE_API_KEY = "AIzaSyCDVhIjXb-i3e8148bwmBIR7G0OA2Uk1U8"
+    # GOOGLE_MODEL = "gemini-2.0-flash"
+    
+
+    # Ollama
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_API_URL: str = f"{OLLAMA_BASE_URL}/api"
     OLLAMA_HEALTH_CHECK_URL: str = f"{OLLAMA_BASE_URL}/api/tags"

@@ -12,8 +12,9 @@ from .prompts import (
     get_research_agent_prompt,
     get_planning_agent_prompt,
 )
-from .tools import get_tools_for_agent, get_time_tool, generate_image_tool
 import re
+from utils.wrappers.llm_wrapper import LLMWrapper
+from .tools import get_tools_for_agent, get_time_tool, generate_image_tool
 
 logger = logging.getLogger(__name__)
 
@@ -22,28 +23,10 @@ class BaseAgent:
     """Base class for all specialized agents"""
 
     def __init__(self, llm=None):
-        self.llm = llm or self._create_llm()
+        self.llm = llm or LLMWrapper()
         self.agent_type = "base"
         self.agent_name = "Base Agent"
         self.tools = []
-
-    def _create_llm(self) -> ChatOllama:
-        """Create a language model instance for this agent"""
-        return ChatOllama(
-            model=Config.LLM_MODEL,
-            base_url=Config.OLLAMA_BASE_URL,
-            retry_on_failure=True,
-            seed=42,
-            temperature=Config.LLM_TEMPERATURE,
-            timeout=Config.LLM_TIMEOUT,
-            num_ctx=Config.LLM_CONTEXT_LENGTH,
-            streaming=Config.ENABLE_STREAMING,
-            # Added recommended Gemma parameters
-            top_k=Config.LLM_TOP_K,
-            top_p=Config.LLM_TOP_P,
-            min_p=Config.LLM_MIN_P,
-            repeat_penalty=Config.LLM_REPETITION_PENALTY,
-        )
 
     def get_system_prompt(self) -> str:
         """Get the system prompt for this agent"""
@@ -74,7 +57,7 @@ class BaseAgent:
         # Process get_time tool
         if "[Tool Used] get_time(" in content:
             try:
-                time_result = get_time_tool.invoke({})
+                time_result = get_time_tool.invoke()
                 content = content.replace("[Tool Used] get_time()", time_result)
             except Exception as e:
                 logger.error(f"Error using get_time tool: {str(e)}")
@@ -117,20 +100,6 @@ class RouterAgent(BaseAgent):
         super().__init__()
         self.agent_type = "router"
         self.agent_name = "Router Agent"
-        self.llm = ChatOllama(
-            model=Config.LLM_MODEL,
-            base_url=Config.OLLAMA_BASE_URL,
-            retry_on_failure=True,
-            seed=42,
-            temperature=0.1,
-            timeout=5,
-            num_retries=1,
-            num_ctx=1024,
-            top_k=Config.LLM_TOP_K,
-            top_p=0.8,
-            min_p=Config.LLM_MIN_P,
-            repeat_penalty=Config.LLM_REPETITION_PENALTY,
-        )
         self.tools = []
 
     def get_system_prompt(self) -> str:

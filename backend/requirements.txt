@@ -18,3 +18,4 @@ accelerate
 safetensors
 huggingface_hub
 peft
+langchain-google-genai
