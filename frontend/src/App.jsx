@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import ChatBox from "./components/ChatBox";
-import MessageInput from "./components/MessageInput";
+import ChatBox from "./components/chat/ChatBox";
+import MessageInput from "./components/chat/MessageInput";
 import { chatWithLLM } from "./services/api";
 import "./App.css";
 
@@ -20,10 +20,8 @@ const App = () => {
     if (!text || !text.trim()) return;
 
     try {
-
       setMessages((prev) => [...prev, { text, isUser: true }]);
       setIsTyping(true);
-
 
       const response = await chatWithLLM(text);
 
@@ -33,18 +31,15 @@ const App = () => {
           isUser: false,
         };
 
-
         if (response.image) {
           const serverUrl =
             process.env.REACT_APP_API_URL || "http://localhost:8000";
           botMessage.image = `${serverUrl}${response.image}`;
         }
 
-
         setMessages((prev) => [...prev, botMessage]);
       }
     } catch (error) {
-
       setMessages((prev) => [
         ...prev,
         {
@@ -62,6 +57,12 @@ const App = () => {
     localStorage.removeItem("chatHistory");
   };
 
+  const handleAttachFile = (files) => {
+    // Handle file attachment logic here
+    console.log("Files attached:", files);
+    // You can implement file handling functionality later
+  };
+
   return (
     <div className="app-container">
       <header className="header">
@@ -73,7 +74,10 @@ const App = () => {
 
       <ChatBox messages={messages} isTyping={isTyping} />
 
-      <MessageInput onSendMessage={handleSendMessage} />
+      <MessageInput
+        onSendMessage={handleSendMessage}
+        onAttachFile={handleAttachFile}
+      />
     </div>
   );
 };
