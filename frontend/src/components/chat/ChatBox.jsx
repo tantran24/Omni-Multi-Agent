@@ -6,7 +6,7 @@ import debounce from "lodash/debounce";
 import { Volume2, X } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 
-const ChatBox = ({ messages, isTyping, darkMode }) => {
+const ChatBox = ({ messages, isTyping, darkMode, onPromptClick }) => {
   const messagesEndRef = useRef(null);
   const containerRef = useRef(null);
   const [modalImage, setModalImage] = useState(null);
@@ -68,10 +68,7 @@ const ChatBox = ({ messages, isTyping, darkMode }) => {
           <button
             key={index}
             className="text-left p-4 border border-[var(--border)] rounded-lg hover:bg-[var(--accent)] transition-colors text-sm"
-            onClick={() => {
-              // You can implement this functionality later
-              console.log("Suggestion clicked:", suggestion);
-            }}
+            onClick={() => onPromptClick(suggestion)}
           >
             {suggestion}
           </button>
@@ -79,12 +76,12 @@ const ChatBox = ({ messages, isTyping, darkMode }) => {
       </div>
     </div>
   );
-
   return (
     <div
-      className="flex-1 overflow-y-auto bg-[var(--background)] custom-scrollbar focus:outline-none relative"
+      className="flex-1 overflow-y-auto overflow-x-hidden bg-[var(--background)] custom-scrollbar focus:outline-none relative max-h-[calc(100vh-140px)]"
       ref={containerRef}
       tabIndex={-1}
+      style={{ height: "calc(100vh - 140px)" }}
     >
       {messages.length > 0 ? (
         <div className="flex flex-col w-full max-w-3xl mx-auto py-4 px-4 md:px-0">
@@ -168,6 +165,7 @@ ChatBox.propTypes = {
   ).isRequired,
   isTyping: PropTypes.bool.isRequired,
   darkMode: PropTypes.bool,
+  onPromptClick: PropTypes.func,
 };
 
 export default memo(ChatBox);

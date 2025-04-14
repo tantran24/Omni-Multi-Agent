@@ -3,6 +3,10 @@ import PropTypes from "prop-types";
 import { motion } from "framer-motion";
 import { Copy, Check, MessageSquare, User, Volume2 } from "lucide-react";
 import { formatModelOutput } from "../../utils/formatters/formatOutput";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/github-dark.css";
 
 const MessageBubble = ({
   message,
@@ -77,15 +81,15 @@ const MessageBubble = ({
           rounded-lg shadow-message
           ${
             isUser
-              ? "bg-[var(--primary)] text-white rounded-br-sm"
+              ? "bg-white dark:bg-[var(--muted)] text-[var(--foreground)] dark:text-[var(--foreground)] rounded-br-sm border border-[var(--border)]"
               : isError
               ? "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300"
               : "bg-[var(--bot-message)] text-[var(--foreground)] rounded-bl-sm border border-[var(--border)]"
           }
-          ${darkMode && isUser ? "bg-opacity-90" : ""}
         `}
       >
-        <div className="p-3.5 overflow-hidden break-words whitespace-pre-wrap">
+        {" "}
+        <div className="p-3.5 overflow-hidden break-words whitespace-pre-wrap text-sm">
           {formatModelOutput ? formatModelOutput(text) : text}
 
           {image && (
@@ -102,10 +106,9 @@ const MessageBubble = ({
               />
             </div>
           )}
-        </div>
-
+        </div>{" "}
         {!isUser && (
-          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity message-actions flex gap-1">
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity message-actions flex gap-1 bg-[var(--background)]/80 backdrop-blur-sm p-1 rounded-md shadow-sm border border-[var(--border)]">
             <button
               onClick={copyToClipboard}
               className="p-1 rounded-md hover:bg-[var(--accent)] text-[var(--muted-foreground)]"

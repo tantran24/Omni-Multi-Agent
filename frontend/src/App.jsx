@@ -37,17 +37,37 @@ const App = () => {
     localStorage.setItem("chatHistory", JSON.stringify(messages));
   }, [messages]);
 
-  const handleSendMessage = async (text) => {
-    if (!text || !text.trim()) return;
+  const handleSendMessage = async (text, imageFile) => {
+    if ((!text || !text.trim()) && !imageFile) return;
 
     try {
-      setMessages((prev) => [
-        ...prev,
-        { text, isUser: true, timestamp: new Date().toISOString() },
-      ]);
+      const newUserMessage = {
+        text: text || "",
+        isUser: true,
+        timestamp: new Date().toISOString(),
+      };
+
+      // If there's an image file, add it to the message
+      if (imageFile) {
+        newUserMessage.image = URL.createObjectURL(imageFile);
+      }
+
+      setMessages((prev) => [...prev, newUserMessage]);
       setIsTyping(true);
 
-      const response = await chatWithLLM(text);
+      // If you need to send the image to the backend, you can use FormData
+      let response;
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("text", text || "");
+        formData.append("image", imageFile);
+
+        // You'll need to implement an API method that accepts FormData
+        // This is just an example, you'll need to adapt it to your API
+        response = await chatWithLLM(text, formData);
+      } else {
+        response = await chatWithLLM(text);
+      }
 
       if (response && response.response) {
         const botMessage = {
@@ -91,9 +111,17 @@ const App = () => {
   }, []);
 
   const handleAttachFile = (files) => {
-    // Handle file attachment logic here
-    console.log("Files attached:", files);
-    // You can implement file handling functionality later
+    if (!files || files.length === 0) return;
+
+    // For now, we'll just handle the first file
+    const file = files[0];
+
+    // Create a message with the attached image
+    handleSendMessage("", file);
+  };
+
+  const handleStarterPrompt = (promptText) => {
+    handleSendMessage(promptText);
   };
 
   return (
@@ -142,7 +170,6 @@ const App = () => {
             </Button>
           </div>
         </div>
-
         {/* Mobile menu */}
         {menuOpen && (
           <div className="lg:hidden border-t border-[var(--border)] bg-[var(--background)]">
@@ -157,10 +184,15 @@ const App = () => {
               </Button>
             </div>
           </div>
-        )}
+        )}{" "}
       </header>
 
-      <ChatBox messages={messages} isTyping={isTyping} darkMode={darkMode} />
+      <ChatBox
+        messages={messages}
+        isTyping={isTyping}
+        darkMode={darkMode}
+        onPromptClick={handleStarterPrompt}
+      />
 
       <MessageInput
         onSendMessage={handleSendMessage}
