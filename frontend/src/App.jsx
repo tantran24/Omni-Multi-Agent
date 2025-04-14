@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import ChatBox from "./components/chat/ChatBox";
 import MessageInput from "./components/chat/MessageInput";
 import { chatWithLLM } from "./services/api";
+import { Button } from "./components/ui/Button";
 import "./App.css";
 
 const App = () => {
@@ -65,11 +66,13 @@ const App = () => {
 
   return (
     <div className="app-container">
-      <header className="header">
-        <h1 className="font-black text-6xl text-center">Omni Multi-Agent</h1>
-        <button className="clear-chat-btn float-right" onClick={clearHistory}>
+      {/* Update header classes for flex layout and vertical centering */}
+      <header className="header flex items-center justify-between p-4"> {/* Added flex, items-center, justify-between, p-4 */}
+        <h1 className="font-black text-4xl md:text-6xl text-center flex-grow">Omni Multi-Agent</h1> {/* Adjusted text size and added flex-grow */}
+        {/* Use the styled Button component */}
+        <Button onClick={clearHistory} className="ml-4"> {/* Added ml-4 for spacing */}
           Clear Chat
-        </button>
+        </Button>
       </header>
 
       <ChatBox messages={messages} isTyping={isTyping} />

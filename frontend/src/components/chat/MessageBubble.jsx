@@ -50,7 +50,7 @@ const Content = styled.div`
   word-wrap: break-word;
   white-space: pre-wrap;
   line-height: 1.4;
-  color: inherit; /* Ensure it inherits color from parent, which is properly set */
+  color: ${({ $isUser }) => ($isUser ? "#fff" : "#333")};
 
   code {
     background: #f0f0f0;
@@ -121,7 +121,7 @@ const MessageBubble = ({ message, onImageClick, actions }) => {
         variants={messageVariants}
         layout
       >
-        <Content>{formatModelOutput(text)}</Content>
+        <Content $isUser={isUser}>{formatModelOutput(text)}</Content>
 
         {image && (
           <MessageImage

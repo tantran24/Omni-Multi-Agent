@@ -42,6 +42,7 @@ export const IconButton = styled.button`
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   transition: all 0.2s ease;
+  color: white; // Base color for the button
 
   display: flex;
   align-items: center;
@@ -58,9 +59,11 @@ export const IconButton = styled.button`
     transform: none;
     box-shadow: none;
   }
+
   svg {
-    color: white;
     width: 18px;
     height: 18px;
+    stroke: white;
+    fill: none;
   }
 `;

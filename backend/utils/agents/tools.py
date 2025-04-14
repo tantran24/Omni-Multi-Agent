@@ -30,7 +30,6 @@ def get_time() -> str:
         raise Exception(f"Error getting time: {str(e)}")
 
 
-# Define tools as proper LangChain tools with schema
 generate_image_tool = Tool(
     name="generate_image",
     description="Generate an image based on the text description provided. Use this when the user wants to create, draw, or visualize an image.",

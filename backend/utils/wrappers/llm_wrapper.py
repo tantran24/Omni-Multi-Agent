@@ -7,6 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class LLMWrapper:
     def __init__(self):
         self.provider = Config.LLM_PROVIDER
@@ -19,7 +20,9 @@ class LLMWrapper:
                     temperature=Config.LLM_TEMPERATURE,
                 )
             except Exception as e:
-                logger.error(f"[LLMWrapper] Error initializing ChatGoogleGenerativeAI: {e}")
+                logger.error(
+                    f"[LLMWrapper] Error initializing ChatGoogleGenerativeAI: {e}"
+                )
                 raise e
         else:  # Ollama
             self.model = ChatOllama(
