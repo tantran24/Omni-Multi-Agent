@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional, Callable
+from typing import List, Dict, Any, Optional, Callable, Tuple
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langchain_ollama import ChatOllama
 from core.config import Config
@@ -45,14 +45,16 @@ class BaseAgent:
 
     def process_response(self, content: str) -> Dict[str, Any]:
         """Process the LLM response and extract any artifacts or process tool calls"""
-        content = self.process_tool_calls(content)
+        content, artifacts = self.process_tool_calls(content)
         return {
             "content": content,
-            "artifacts": {},
+            "artifacts": artifacts,
         }
 
-    def process_tool_calls(self, content: str) -> str:
+    def process_tool_calls(self, content: str) -> tuple[str, dict]:
         """Process tool calls in the content"""
+        artifacts = {}
+
         if "[Tool Used] get_time(" in content:
             try:
                 time_result = get_time_tool.invoke("")
@@ -61,7 +63,36 @@ class BaseAgent:
                 logger.error(f"Error using get_time tool: {str(e)}")
                 content += f"\nError getting time: {str(e)}"
 
-        return content
+        image_match = re.search(r"\[Tool Used\] generate_image\(([^)]+)\)", content)
+        if image_match:
+            try:
+                image_prompt = image_match.group(1).strip()
+                logger.info(f"Generating image with prompt: {image_prompt}")
+                image_path = generate_image_tool.invoke(image_prompt)
+                artifacts["image"] = image_path
+                content = re.sub(r"\[Tool Used\] generate_image\([^)]+\)", "", content)
+                content += f"\n\n![Generated Image]({image_path})"
+            except Exception as e:
+                error_msg = f"\n\nError generating image: {str(e)}"
+                logger.error(error_msg)
+                content += error_msg
+
+        function_call_pattern = r"generate_image\([\"'](.*?)[\"']\)"
+        function_match = re.search(function_call_pattern, content)
+        if function_match and "image" not in artifacts:
+            try:
+                image_prompt = function_match.group(1).strip()
+                logger.info(f"Generating image from function call: {image_prompt}")
+                image_path = generate_image_tool.invoke(image_prompt)
+                artifacts["image"] = image_path
+                content = re.sub(function_call_pattern, "", content)
+                content += f"\n\n![Generated Image]({image_path})"
+            except Exception as e:
+                error_msg = f"\n\nError generating image: {str(e)}"
+                logger.error(error_msg)
+                content += error_msg
+
+        return content, artifacts
 
     def invoke(
         self, message: HumanMessage, chat_history: List[BaseMessage] = None
@@ -190,30 +221,6 @@ class ImageAgent(BaseAgent):
     def get_system_prompt(self) -> str:
         """Get the specialized image agent prompt"""
         return get_image_agent_prompt()
-
-    def process_response(self, content: str) -> Dict[str, Any]:
-        """Process the image generation response and handle tool calls"""
-        artifacts = {}
-
-        image_match = re.search(r"\[Tool Used\] generate_image\(([^)]+)\)", content)
-        if image_match:
-            try:
-                image_prompt = image_match.group(1).strip()
-                logger.info(f"Generating image with prompt: {image_prompt}")
-                image_path = generate_image_tool.invoke(image_prompt)
-                artifacts = {"image": image_path}
-                content = re.sub(r"\[Tool Used\] generate_image\([^)]+\)", "", content)
-                content += f"\n\n![Generated Image]({image_path})"
-
-            except Exception as e:
-                error_msg = f"\n\nError generating image: {str(e)}"
-                logger.error(error_msg)
-                content += error_msg
-
-        return {
-            "content": content,
-            "artifacts": artifacts,
-        }
 
 
 class ChatAgent:

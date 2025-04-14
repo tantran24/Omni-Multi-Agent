@@ -1,69 +1,137 @@
-import styled from "styled-components";
+import React from "react";
+import PropTypes from "prop-types";
 
 /**
- * Standard button component with consistent styling
+ * Modern Button component with various styles and variants
  */
-export const Button = styled.button`
-  padding: 10px 20px;
-  margin: 5px;
-  background: linear-gradient(135deg, #ff7e5f, #feb47b);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
+export const Button = React.forwardRef(
+  (
+    {
+      children,
+      className,
+      variant = "default",
+      size = "default",
+      disabled,
+      onClick,
+      ...props
+    },
+    ref
+  ) => {
+    const getVariantClasses = () => {
+      switch (variant) {
+        case "primary":
+          return "bg-claude-purple text-white hover:bg-claude-purple/90";
+        case "outline":
+          return "bg-transparent border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--accent)]";
+        case "ghost":
+          return "bg-transparent hover:bg-[var(--accent)] text-[var(--foreground)]";
+        case "destructive":
+          return "bg-red-500 text-white hover:bg-red-600";
+        default:
+          return "bg-[var(--accent)] text-[var(--accent-foreground)] hover:bg-[var(--accent)]/90";
+      }
+    };
 
-  &:hover {
-    background: linear-gradient(135deg, #e66a53, #e0a97d);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  }
+    const getSizeClasses = () => {
+      switch (size) {
+        case "sm":
+          return "text-xs px-2.5 py-1.5 rounded-md";
+        case "lg":
+          return "text-base px-6 py-3 rounded-lg";
+        case "icon":
+          return "h-9 w-9 p-0 rounded-md";
+        default:
+          return "text-sm px-4 py-2 rounded-md";
+      }
+    };
 
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
+    return (
+      <button
+        ref={ref}
+        className={`
+          inline-flex items-center justify-center font-medium transition-colors 
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] 
+          disabled:opacity-50 disabled:pointer-events-none
+          ${getVariantClasses()}
+          ${getSizeClasses()}
+          ${className}
+        `}
+        disabled={disabled}
+        onClick={onClick}
+        {...props}
+      >
+        {children}
+      </button>
+    );
   }
-`;
+);
+
+Button.displayName = "Button";
+
+Button.defaultProps = {
+  variant: "default",
+  size: "default",
+  className: "",
+  disabled: false,
+};
 
 /**
- * Icon button for actions with icons
+ * @typedef {Object} ButtonProps
+ * @property {React.ReactNode} [children] - Button content
+ * @property {string} [className] - Additional CSS classes
+ * @property {"default"|"primary"|"outline"|"ghost"|"destructive"} [variant="default"] - Button variant
+ * @property {"default"|"sm"|"lg"|"icon"} [size="default"] - Button size
+ * @property {boolean} [disabled=false] - Whether the button is disabled
+ * @property {Function} [onClick] - Click handler
  */
-export const IconButton = styled.button`
-  background: linear-gradient(135deg, #ff7e5f, #feb47b);
-  border: none;
-  border-radius: 8px;
-  width: 36px;
-  height: 36px;
-  margin-left: 8px;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
-  color: white; // Base color for the button
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+/**
+ * IconButton component for actions with icons
+ */
+export const IconButton = React.forwardRef(
+  (
+    {
+      icon,
+      className,
+      variant = "default",
+      size = "default",
+      disabled,
+      onClick,
+      ...props
+    },
+    ref
+  ) => {
+    return (
+      <Button
+        ref={ref}
+        variant={variant}
+        size="icon"
+        className={className}
+        disabled={disabled}
+        onClick={onClick}
+        {...props}
+      >
+        {icon}
+      </Button>
+    );
   }
+);
 
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
+IconButton.displayName = "IconButton";
 
-  svg {
-    width: 18px;
-    height: 18px;
-    stroke: white;
-    fill: none;
-  }
-`;
+IconButton.defaultProps = {
+  variant: "default",
+  size: "default",
+  className: "",
+  disabled: false,
+};
+
+/**
+ * @typedef {Object} IconButtonProps
+ * @property {React.ReactNode} icon - The icon to display
+ * @property {string} [className] - Additional CSS classes
+ * @property {"default"|"primary"|"outline"|"ghost"|"destructive"} [variant="default"] - Button variant
+ * @property {"default"|"sm"|"lg"} [size="default"] - Button size
+ * @property {boolean} [disabled=false] - Whether the button is disabled
+ * @property {Function} [onClick] - Click handler
+ */

@@ -16,8 +16,13 @@ Respond only with "ROUTE: [Agent Name]"
 
 def get_assistant_agent_prompt():
     return """You are the Assistant Agent.
-Provide helpful and concise responses. For tools:
+Provide helpful and concise responses. 
+
+IMPORTANT - For tools:
 - Use [Tool Used] get_time() for time/date questions.
+- For image generation, use [Tool Used] generate_image(detailed description) format
+- Never just describe the tool call syntax - actually use the exact format shown above
+- Don't put quotes around parameters in tool calls
 - Don't invent tools that don't exist.
 """
 
@@ -40,5 +45,10 @@ Create clear plans with steps, dependencies, timeframes, and potential obstacles
 def get_image_agent_prompt():
     return """You are the Image Agent.
 Generate images by considering subject, style, composition, mood, and colors.
-Use [Tool Used] generate_image(detailed description) to create images.
+
+To create images, you MUST use this exact format:
+[Tool Used] generate_image(detailed description)
+
+Never simply write out the code format as text. Always use the exact syntax above to ensure the image is generated.
+Do not put quotes around the description in the generate_image call.
 Only generate images when explicitly requested."""
