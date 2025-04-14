@@ -19,7 +19,7 @@ def generate_image(prompt: str) -> str:
         raise Exception(f"Image generation failed: {str(e)}")
 
 
-def get_time() -> str:
+def get_time(input: str = "") -> str:
     """
     Get the current time, optionally in the specified timezone
     """

@@ -30,7 +30,6 @@ class BaseAgent:
 
     def get_system_prompt(self) -> str:
         """Get the system prompt for this agent"""
-        # Include available tools in the system prompt
         tools_desc = ""
         if self.tools:
             tools_desc = "\n\nYou have access to the following tools:\n"
@@ -54,10 +53,9 @@ class BaseAgent:
 
     def process_tool_calls(self, content: str) -> str:
         """Process tool calls in the content"""
-        # Process get_time tool
         if "[Tool Used] get_time(" in content:
             try:
-                time_result = get_time_tool.invoke()
+                time_result = get_time_tool.invoke("")
                 content = content.replace("[Tool Used] get_time()", time_result)
             except Exception as e:
                 logger.error(f"Error using get_time tool: {str(e)}")
@@ -74,7 +72,6 @@ class BaseAgent:
 
         system_prompt = self.get_system_prompt()
 
-        # Only include recent history for context
         recent_history = chat_history[-4:] if len(chat_history) > 4 else chat_history
 
         messages = [
@@ -198,7 +195,6 @@ class ImageAgent(BaseAgent):
         """Process the image generation response and handle tool calls"""
         artifacts = {}
 
-        # Look for image generation tool calls
         image_match = re.search(r"\[Tool Used\] generate_image\(([^)]+)\)", content)
         if image_match:
             try:
@@ -206,7 +202,6 @@ class ImageAgent(BaseAgent):
                 logger.info(f"Generating image with prompt: {image_prompt}")
                 image_path = generate_image_tool.invoke(image_prompt)
                 artifacts = {"image": image_path}
-                # Add a reference to the image in the content
                 content = re.sub(r"\[Tool Used\] generate_image\([^)]+\)", "", content)
                 content += f"\n\n![Generated Image]({image_path})"
 
@@ -241,7 +236,6 @@ class ChatAgent:
             if self.agent_executor is None:
                 return "Agent executor not initialized"
 
-            # Create the input state for the graph
             input_state = {
                 "input": prompt,
                 "chat_history": self.chat_history,
@@ -250,19 +244,15 @@ class ChatAgent:
                 "artifacts": {},
             }
 
-            # Process the message through the agent graph
             try:
-                # Use .invoke() method for compiled graphs rather than calling directly
                 response = self.agent_executor.invoke(input_state)
 
                 if isinstance(response, dict):
                     output = response.get("output", "")
 
-                    # Update chat history if available
                     if "chat_history" in response:
                         self.chat_history = response["chat_history"]
 
-                    # Handle any artifacts (like images)
                     artifacts = response.get("artifacts", {})
                     if "image" in artifacts:
                         image_path = artifacts["image"]
