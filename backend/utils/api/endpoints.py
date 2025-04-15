@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 import shutil
 import os
 
-from stt.decode import run
+from stt import run
 
 logger = logging.getLogger(__name__)
 
