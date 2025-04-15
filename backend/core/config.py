@@ -1,5 +1,8 @@
 import os
 from typing import List
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path="core/.env")
 
 
 class Config:
@@ -7,6 +10,13 @@ class Config:
     PORT: int = 8000
     CORS_ORIGINS: List[str] = ["http://localhost:5173"]
 
+    LLM_PROVIDER = "google_ai_studio"
+
+    # Google AI Studio
+    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+    GOOGLE_MODEL = os.getenv("GOOGLE_MODEL", "gemini-pro")
+
+    # Ollama
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_API_URL: str = f"{OLLAMA_BASE_URL}/api"
     OLLAMA_HEALTH_CHECK_URL: str = f"{OLLAMA_BASE_URL}/api/tags"
@@ -14,7 +24,7 @@ class Config:
     OLLAMA_MAX_RETRIES: int = 3
     OLLAMA_RETRY_DELAY: int = 1
 
-    LLM_MODEL: str = "PetrosStav/gemma3-tools:4b"
+    LLM_MODEL: str = ""
     LLM_TEMPERATURE: float = 1.0
     LLM_CONTEXT_LENGTH: int = 4096
     LLM_TIMEOUT: int = 120

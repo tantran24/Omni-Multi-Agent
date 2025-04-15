@@ -19,7 +19,7 @@ def generate_image(prompt: str) -> str:
         raise Exception(f"Image generation failed: {str(e)}")
 
 
-def get_time(timezone: Optional[str] = None) -> str:
+def get_time(input: str = "") -> str:
     """
     Get the current time, optionally in the specified timezone
     """
@@ -30,7 +30,6 @@ def get_time(timezone: Optional[str] = None) -> str:
         raise Exception(f"Error getting time: {str(e)}")
 
 
-# Define tools as proper LangChain tools with schema
 generate_image_tool = Tool(
     name="generate_image",
     description="Generate an image based on the text description provided. Use this when the user wants to create, draw, or visualize an image.",

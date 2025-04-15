@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional, Callable
+from typing import List, Dict, Any, Optional, Callable, Tuple
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langchain_ollama import ChatOllama
 from core.config import Config
@@ -12,8 +12,9 @@ from .prompts import (
     get_research_agent_prompt,
     get_planning_agent_prompt,
 )
-from .tools import get_tools_for_agent, get_time_tool, generate_image_tool
 import re
+from utils.wrappers.llm_wrapper import LLMWrapper
+from .tools import get_tools_for_agent, get_time_tool, generate_image_tool
 
 logger = logging.getLogger(__name__)
 
@@ -22,32 +23,13 @@ class BaseAgent:
     """Base class for all specialized agents"""
 
     def __init__(self, llm=None):
-        self.llm = llm or self._create_llm()
+        self.llm = llm or LLMWrapper()
         self.agent_type = "base"
         self.agent_name = "Base Agent"
         self.tools = []
 
-    def _create_llm(self) -> ChatOllama:
-        """Create a language model instance for this agent"""
-        return ChatOllama(
-            model=Config.LLM_MODEL,
-            base_url=Config.OLLAMA_BASE_URL,
-            retry_on_failure=True,
-            seed=42,
-            temperature=Config.LLM_TEMPERATURE,
-            timeout=Config.LLM_TIMEOUT,
-            num_ctx=Config.LLM_CONTEXT_LENGTH,
-            streaming=Config.ENABLE_STREAMING,
-            # Added recommended Gemma parameters
-            top_k=Config.LLM_TOP_K,
-            top_p=Config.LLM_TOP_P,
-            min_p=Config.LLM_MIN_P,
-            repeat_penalty=Config.LLM_REPETITION_PENALTY,
-        )
-
     def get_system_prompt(self) -> str:
         """Get the system prompt for this agent"""
-        # Include available tools in the system prompt
         tools_desc = ""
         if self.tools:
             tools_desc = "\n\nYou have access to the following tools:\n"
@@ -63,24 +45,54 @@ class BaseAgent:
 
     def process_response(self, content: str) -> Dict[str, Any]:
         """Process the LLM response and extract any artifacts or process tool calls"""
-        content = self.process_tool_calls(content)
+        content, artifacts = self.process_tool_calls(content)
         return {
             "content": content,
-            "artifacts": {},
+            "artifacts": artifacts,
         }
 
-    def process_tool_calls(self, content: str) -> str:
+    def process_tool_calls(self, content: str) -> tuple[str, dict]:
         """Process tool calls in the content"""
-        # Process get_time tool
+        artifacts = {}
+
         if "[Tool Used] get_time(" in content:
             try:
-                time_result = get_time_tool.invoke({})
+                time_result = get_time_tool.invoke("")
                 content = content.replace("[Tool Used] get_time()", time_result)
             except Exception as e:
                 logger.error(f"Error using get_time tool: {str(e)}")
                 content += f"\nError getting time: {str(e)}"
 
-        return content
+        image_match = re.search(r"\[Tool Used\] generate_image\(([^)]+)\)", content)
+        if image_match:
+            try:
+                image_prompt = image_match.group(1).strip()
+                logger.info(f"Generating image with prompt: {image_prompt}")
+                image_path = generate_image_tool.invoke(image_prompt)
+                artifacts["image"] = image_path
+                content = re.sub(r"\[Tool Used\] generate_image\([^)]+\)", "", content)
+                content += f"\n\n![Generated Image]({image_path})"
+            except Exception as e:
+                error_msg = f"\n\nError generating image: {str(e)}"
+                logger.error(error_msg)
+                content += error_msg
+
+        function_call_pattern = r"generate_image\([\"'](.*?)[\"']\)"
+        function_match = re.search(function_call_pattern, content)
+        if function_match and "image" not in artifacts:
+            try:
+                image_prompt = function_match.group(1).strip()
+                logger.info(f"Generating image from function call: {image_prompt}")
+                image_path = generate_image_tool.invoke(image_prompt)
+                artifacts["image"] = image_path
+                content = re.sub(function_call_pattern, "", content)
+                content += f"\n\n![Generated Image]({image_path})"
+            except Exception as e:
+                error_msg = f"\n\nError generating image: {str(e)}"
+                logger.error(error_msg)
+                content += error_msg
+
+        return content, artifacts
 
     def invoke(
         self, message: HumanMessage, chat_history: List[BaseMessage] = None
@@ -91,7 +103,6 @@ class BaseAgent:
 
         system_prompt = self.get_system_prompt()
 
-        # Only include recent history for context
         recent_history = chat_history[-4:] if len(chat_history) > 4 else chat_history
 
         messages = [
@@ -117,20 +128,6 @@ class RouterAgent(BaseAgent):
         super().__init__()
         self.agent_type = "router"
         self.agent_name = "Router Agent"
-        self.llm = ChatOllama(
-            model=Config.LLM_MODEL,
-            base_url=Config.OLLAMA_BASE_URL,
-            retry_on_failure=True,
-            seed=42,
-            temperature=0.1,
-            timeout=5,
-            num_retries=1,
-            num_ctx=1024,
-            top_k=Config.LLM_TOP_K,
-            top_p=0.8,
-            min_p=Config.LLM_MIN_P,
-            repeat_penalty=Config.LLM_REPETITION_PENALTY,
-        )
         self.tools = []
 
     def get_system_prompt(self) -> str:
@@ -225,32 +222,6 @@ class ImageAgent(BaseAgent):
         """Get the specialized image agent prompt"""
         return get_image_agent_prompt()
 
-    def process_response(self, content: str) -> Dict[str, Any]:
-        """Process the image generation response and handle tool calls"""
-        artifacts = {}
-
-        # Look for image generation tool calls
-        image_match = re.search(r"\[Tool Used\] generate_image\(([^)]+)\)", content)
-        if image_match:
-            try:
-                image_prompt = image_match.group(1).strip()
-                logger.info(f"Generating image with prompt: {image_prompt}")
-                image_path = generate_image_tool.invoke(image_prompt)
-                artifacts = {"image": image_path}
-                # Add a reference to the image in the content
-                content = re.sub(r"\[Tool Used\] generate_image\([^)]+\)", "", content)
-                content += f"\n\n![Generated Image]({image_path})"
-
-            except Exception as e:
-                error_msg = f"\n\nError generating image: {str(e)}"
-                logger.error(error_msg)
-                content += error_msg
-
-        return {
-            "content": content,
-            "artifacts": artifacts,
-        }
-
 
 class ChatAgent:
     """Main chat agent that uses the multi-agent graph for processing queries"""
@@ -272,7 +243,6 @@ class ChatAgent:
             if self.agent_executor is None:
                 return "Agent executor not initialized"
 
-            # Create the input state for the graph
             input_state = {
                 "input": prompt,
                 "chat_history": self.chat_history,
@@ -281,19 +251,15 @@ class ChatAgent:
                 "artifacts": {},
             }
 
-            # Process the message through the agent graph
             try:
-                # Use .invoke() method for compiled graphs rather than calling directly
                 response = self.agent_executor.invoke(input_state)
 
                 if isinstance(response, dict):
                     output = response.get("output", "")
 
-                    # Update chat history if available
                     if "chat_history" in response:
                         self.chat_history = response["chat_history"]
 
-                    # Handle any artifacts (like images)
                     artifacts = response.get("artifacts", {})
                     if "image" in artifacts:
                         image_path = artifacts["image"]

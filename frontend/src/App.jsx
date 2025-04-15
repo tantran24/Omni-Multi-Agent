@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
-import ChatBox from "./components/ChatBox";
-import MessageInput from "./components/MessageInput";
+import React, { useState, useEffect, useCallback } from "react";
+import ChatBox from "./components/chat/ChatBox";
+import MessageInput from "./components/chat/MessageInput";
 import { chatWithLLM } from "./services/api";
+import { Button } from "./components/ui/Button";
+import { Moon, Sun, RotateCcw, Menu } from "lucide-react";
 import "./App.css";
 
 const App = () => {
@@ -11,28 +13,68 @@ const App = () => {
   });
 
   const [isTyping, setIsTyping] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedMode = localStorage.getItem("darkMode");
+    return (
+      savedMode === "true" ||
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    );
+  });
+  const [menuOpen, setMenuOpen] = useState(false);
 
+  // Set dark mode class on body
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    localStorage.setItem("darkMode", darkMode);
+  }, [darkMode]);
+
+  // Save chat history to localStorage
   useEffect(() => {
     localStorage.setItem("chatHistory", JSON.stringify(messages));
   }, [messages]);
 
-  const handleSendMessage = async (text) => {
-    if (!text || !text.trim()) return;
+  const handleSendMessage = async (text, imageFile) => {
+    if ((!text || !text.trim()) && !imageFile) return;
 
     try {
+      const newUserMessage = {
+        text: text || "",
+        isUser: true,
+        timestamp: new Date().toISOString(),
+      };
 
-      setMessages((prev) => [...prev, { text, isUser: true }]);
+      // If there's an image file, add it to the message
+      if (imageFile) {
+        newUserMessage.image = URL.createObjectURL(imageFile);
+      }
+
+      setMessages((prev) => [...prev, newUserMessage]);
       setIsTyping(true);
 
+      // If you need to send the image to the backend, you can use FormData
+      let response;
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("text", text || "");
+        formData.append("image", imageFile);
 
-      const response = await chatWithLLM(text);
+        // You'll need to implement an API method that accepts FormData
+        // This is just an example, you'll need to adapt it to your API
+        response = await chatWithLLM(text, formData);
+      } else {
+        response = await chatWithLLM(text);
+      }
 
       if (response && response.response) {
         const botMessage = {
           text: response.response,
           isUser: false,
+          timestamp: new Date().toISOString(),
         };
-
 
         if (response.image) {
           const serverUrl =
@@ -40,40 +82,123 @@ const App = () => {
           botMessage.image = `${serverUrl}${response.image}`;
         }
 
-
         setMessages((prev) => [...prev, botMessage]);
       }
     } catch (error) {
-
       setMessages((prev) => [
         ...prev,
         {
           text: `Error: ${error.message || "An unexpected error occurred"}`,
           isUser: false,
           isError: true,
+          timestamp: new Date().toISOString(),
         },
       ]);
     } finally {
       setIsTyping(false);
     }
   };
-  const clearHistory = () => {
+
+  const clearHistory = useCallback(() => {
     setMessages([]);
     localStorage.removeItem("chatHistory");
+    setMenuOpen(false);
+  }, []);
+
+  const toggleDarkMode = useCallback(() => {
+    setDarkMode((prev) => !prev);
+    setMenuOpen(false);
+  }, []);
+
+  const handleAttachFile = (files) => {
+    if (!files || files.length === 0) return;
+
+    // For now, we'll just handle the first file
+    const file = files[0];
+
+    // Create a message with the attached image
+    handleSendMessage("", file);
+  };
+
+  const handleStarterPrompt = (promptText) => {
+    handleSendMessage(promptText);
   };
 
   return (
-    <div className="app-container">
-      <header className="header">
-        <h1 className="font-black text-6xl text-center">Omni Multi-Agent</h1>
-        <button className="clear-chat-btn float-right" onClick={clearHistory}>
-          Clear Chat
-        </button>
+    <div className="flex flex-col min-h-screen bg-[var(--background)] text-[var(--foreground)] transition-colors duration-200">
+      {/* Header with modern styling */}
+      <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--background)] backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="mr-3 lg:hidden">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="p-2 rounded-full hover:bg-[var(--accent)] transition-colors"
+                aria-label="Menu"
+              >
+                <Menu size={20} />
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-claude-purple to-claude-lavender flex items-center justify-center">
+                <span className="text-white font-semibold text-sm">O</span>
+              </div>
+              <h1 className="text-xl font-semibold hidden md:block">
+                Omni Multi-Agent
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-full hover:bg-[var(--accent)] transition-colors"
+              aria-label={
+                darkMode ? "Switch to light mode" : "Switch to dark mode"
+              }
+            >
+              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+
+            <Button
+              onClick={clearHistory}
+              className="hidden md:flex items-center gap-2 bg-[var(--accent)] hover:bg-[var(--accent)]/80 text-[var(--accent-foreground)]"
+              variant="outline"
+            >
+              <RotateCcw size={16} />
+              <span>Clear Chat</span>
+            </Button>
+          </div>
+        </div>
+        {/* Mobile menu */}
+        {menuOpen && (
+          <div className="lg:hidden border-t border-[var(--border)] bg-[var(--background)]">
+            <div className="container mx-auto p-4 flex flex-col gap-2">
+              <Button
+                onClick={clearHistory}
+                className="flex items-center justify-center gap-2 w-full"
+                variant="outline"
+              >
+                <RotateCcw size={16} />
+                <span>Clear Chat</span>
+              </Button>
+            </div>
+          </div>
+        )}{" "}
       </header>
 
-      <ChatBox messages={messages} isTyping={isTyping} />
+      <ChatBox
+        messages={messages}
+        isTyping={isTyping}
+        darkMode={darkMode}
+        onPromptClick={handleStarterPrompt}
+      />
 
-      <MessageInput onSendMessage={handleSendMessage} />
+      <MessageInput
+        onSendMessage={handleSendMessage}
+        onAttachFile={handleAttachFile}
+        isTyping={isTyping}
+      />
     </div>
   );
 };
