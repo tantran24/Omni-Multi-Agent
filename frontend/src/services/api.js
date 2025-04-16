@@ -24,39 +24,40 @@ export const chatWithLLM = async (message) => {
   } catch (error) {
     throw new Error(
       error.response?.data?.detail ||
-        error.message ||
-        "An unexpected error occurred"
+      error.message ||
+      "An unexpected error occurred"
     );
   }
 };
 
-export const uploadVoiceRecording = async (audioBlob) => {
+export const uploadVoiceRecording = async (audioChunks) => {
+  const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+
   try {
     const formData = new FormData();
-    formData.append("audio", audioBlob, "voice-message.webm");
+    formData.append("audio", audioBlob, "recording.wav");
 
-    // Use a different instance for form data to set the right headers
     const formApi = axios.create({
-      baseURL: API_URL,
+      baseURL: "http://127.0.0.1:8000/api",
       headers: {
         "Content-Type": "multipart/form-data",
       },
     });
 
-    const response = await formApi.post("/speech-to-text", formData);
+    const response = await formApi.post("/transcribe", formData);
 
-    if (!response.data?.text) {
-      throw new Error("Invalid speech-to-text response format");
+    if (!response.data?.transcription) {
+      throw new Error("Invalid transcription response format");
     }
 
     return {
-      text: response.data.text,
+      transcription: response.data.transcription,
     };
   } catch (error) {
     throw new Error(
       error.response?.data?.detail ||
-        error.message ||
-        "Failed to process voice recording"
+      error.message ||
+      "Failed to transcribe audio"
     );
   }
 };

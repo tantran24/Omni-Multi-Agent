@@ -3,19 +3,16 @@ import PropTypes from "prop-types";
 import { useDropzone } from "react-dropzone";
 import { Send, Paperclip, Mic, Loader2, X } from "lucide-react";
 import { uploadVoiceRecording } from "../../services/api";
+import VoiceRecorder from "./VoiceInput";
 
 /**
  * MessageInput Component - Handles user text input, voice recording, and file attachments
  */
-const MessageInput = ({ onSendMessage, onAttachFile, isTyping }) => {
+const MessageInput = ({ onSendMessage, onAttachFile, isTyping, darkMode }) => {
   const [message, setMessage] = useState("");
   const textareaRef = useRef(null);
   const [pastedImage, setPastedImage] = useState(null);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [audioData, setAudioData] = useState([]);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
 
   // Auto-resize textarea as user types
   useEffect(() => {
@@ -26,114 +23,14 @@ const MessageInput = ({ onSendMessage, onAttachFile, isTyping }) => {
     }
   }, [message]);
 
-  // Set up voice recording functionality
-  useEffect(() => {
-    if (showVoiceRecorder && !isRecording) {
-      startRecording();
-    } else if (!showVoiceRecorder && isRecording) {
-      stopRecording();
+  const handleSaveRecording = (text) => {
+    setMessage(text);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
     }
-  }, [showVoiceRecorder, isRecording]);
-
-  // Function to visualize audio data
-  useEffect(() => {
-    let visualizationInterval;
-    if (isRecording && mediaRecorderRef.current) {
-      visualizationInterval = setInterval(() => {
-        // Generate random visualization data for demo purposes
-        // In a real implementation, you would use the Web Audio API to analyze the audio
-        const randomValues = Array.from(
-          { length: 20 },
-          () => Math.random() * 50 + 10
-        );
-        setAudioData(randomValues);
-      }, 100);
-    }
-    return () => clearInterval(visualizationInterval);
-  }, [isRecording]);
-
-  // Start recording audio
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (error) {
-      console.error("Error starting recording:", error);
-      setShowVoiceRecorder(false);
-    }
-  };
-
-  // Stop recording and process audio
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream
-        .getTracks()
-        .forEach((track) => track.stop());
-      setIsRecording(false);
-    }
-  };
-
-  // Handle saving the recorded audio
-  const handleSaveRecording = async () => {
-    if (audioChunksRef.current.length === 0) {
-      setShowVoiceRecorder(false);
-      return;
-    }
-
-    try {
-      const audioBlob = new Blob(audioChunksRef.current, {
-        type: "audio/webm",
-      });
-
-      // Show loading state
-      setIsRecording(false);
-      setAudioData([30, 40, 20, 50, 30, 40, 20]); // Static visualization during processing
-
-      // Send to backend for speech-to-text processing
-      const result = await uploadVoiceRecording(audioBlob);
-
-      if (result && result.text) {
-        // Set the transcribed text in the input
-        setMessage((prev) => prev + (prev ? " " : "") + result.text);
-
-        // Focus the textarea
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-        }
-      }
-    } catch (error) {
-      console.error("Error processing voice recording:", error);
-      // Could add user feedback here about the error
-    } finally {
-      setShowVoiceRecorder(false);
-    }
-  };
-
-  // Cancel recording
-  const handleCancelRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stream
-        .getTracks()
-        .forEach((track) => track.stop());
-    }
-    setIsRecording(false);
     setShowVoiceRecorder(false);
-    audioChunksRef.current = [];
   };
 
-  // Auto-focus the textarea when the component mounts
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.focus();
@@ -204,59 +101,12 @@ const MessageInput = ({ onSendMessage, onAttachFile, isTyping }) => {
       <div className="container mx-auto px-4 py-3 max-w-3xl">
         {/* Voice recorder overlay */}
         {showVoiceRecorder && (
-          <div className="mb-3 p-4 rounded-lg bg-[var(--accent)] border border-[var(--border)] shadow-lg">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-sm font-medium">Voice Message</h3>
-              <button
-                onClick={handleCancelRecording}
-                className="p-1 hover:bg-[var(--muted)] rounded-full transition-all duration-200"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            {/* Audio visualization */}
-            <div className="h-16 bg-[var(--background)] rounded-lg mb-3 p-2 flex items-center justify-center">
-              <div className="w-full flex items-end justify-center space-x-1">
-                {audioData.map((height, index) => (
-                  <div
-                    key={index}
-                    className="w-1 bg-[var(--primary)] rounded-t"
-                    style={{
-                      height: `${height}%`,
-                      maxHeight: "80%",
-                      animation: isRecording
-                        ? "pulse 0.5s infinite alternate"
-                        : "none",
-                    }}
-                  ></div>
-                ))}
-                {audioData.length === 0 && (
-                  <div className="text-sm text-[var(--muted-foreground)]">
-                    {isRecording ? "Recording..." : "Starting..."}
-                  </div>
-                )}
-              </div>
-            </div>{" "}
-            {/* Control buttons */}
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={handleCancelRecording}
-                className="flex items-center gap-2 p-2 text-sm rounded-md border border-[var(--border)] bg-[var(--accent)] hover:bg-[var(--accent)]/80 text-[var(--accent-foreground)] transition-all duration-200"
-              >
-                <X size={16} />
-                <span>Cancel</span>
-              </button>
-              <button
-                onClick={handleSaveRecording}
-                className="flex items-center gap-2 p-2 text-sm rounded-md bg-claude-purple text-white hover:bg-claude-purple/90 transition-all duration-200"
-                disabled={!isRecording && audioChunksRef.current.length === 0}
-              >
-                <span>Confirm</span>
-              </button>
-            </div>
-          </div>
+          <VoiceRecorder
+            onResult={handleSaveRecording}
+            onClose={() => setShowVoiceRecorder(false)}
+            darkMode={darkMode}
+          />
         )}
-
         {/* Pasted image preview */}
         {pastedImage && (
           <div className="mb-2 relative">
@@ -292,11 +142,10 @@ const MessageInput = ({ onSendMessage, onAttachFile, isTyping }) => {
         {/* Drag and drop area */}
         <div
           {...getRootProps()}
-          className={`relative rounded-lg transition-all duration-200 ${
-            isDragActive
-              ? "border-2 border-dashed border-primary-400 bg-primary-50 dark:bg-primary-950/30"
-              : ""
-          }`}
+          className={`relative rounded-lg transition-all duration-200 ${isDragActive
+            ? "border-2 border-dashed border-primary-400 bg-primary-50 dark:bg-primary-950/30"
+            : ""
+            }`}
         >
           {isDragActive && (
             <div className="absolute inset-0 flex items-center justify-center bg-[var(--accent)]/50 backdrop-blur-sm rounded-lg z-10">
@@ -388,6 +237,7 @@ MessageInput.propTypes = {
   onSendMessage: PropTypes.func.isRequired,
   onAttachFile: PropTypes.func.isRequired,
   isTyping: PropTypes.bool,
+  darkMode: PropTypes.bool,
 };
 
 export default MessageInput;

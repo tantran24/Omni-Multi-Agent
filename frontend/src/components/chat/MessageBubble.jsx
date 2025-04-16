@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { motion } from "framer-motion";
 import { Copy, Check, MessageSquare, User, Volume2 } from "lucide-react";
@@ -7,6 +7,47 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
+
+const TypewriterEffect = ({ text, delay = 3, onComplete }) => {
+  const [displayedText, setDisplayedText] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
+
+  useEffect(() => {
+    setDisplayedText("");
+    setCurrentIndex(0);
+    setIsComplete(false);
+  }, [text]);
+
+  useEffect(() => {
+    if (currentIndex < text.length) {
+      const timer = setTimeout(() => {
+        setDisplayedText(prev => prev + text[currentIndex]);
+        setCurrentIndex(prevIndex => prevIndex + 1);
+      }, delay);
+
+      return () => clearTimeout(timer);
+    } else if (!isComplete) {
+      setIsComplete(true);
+      if (onComplete) onComplete();
+    }
+  }, [currentIndex, delay, text, isComplete, onComplete]);
+
+  return (
+    <>
+      {formatModelOutput ? formatModelOutput(displayedText) : displayedText}
+      {!isComplete && (
+        <span className="typing-cursor">|</span>
+      )}
+    </>
+  );
+};
+
+TypewriterEffect.propTypes = {
+  text: PropTypes.string.isRequired,
+  delay: PropTypes.number,
+  onComplete: PropTypes.func
+};
 
 const MessageBubble = ({
   message,
@@ -17,13 +58,14 @@ const MessageBubble = ({
 }) => {
   const { text, isUser, image, isError, timestamp } = message;
   const [copied, setCopied] = useState(false);
+  const [typewriterComplete, setTypewriterComplete] = useState(isUser);
 
   const formattedTimestamp = timestamp
     ? new Date(timestamp).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })
     : "";
 
   const copyToClipboard = () => {
@@ -79,10 +121,9 @@ const MessageBubble = ({
         className={`
           relative group max-w-[80%] md:max-w-[65%] w-fit
           rounded-lg shadow-message
-          ${
-            isUser
-              ? "bg-white dark:bg-[var(--muted)] text-[var(--foreground)] dark:text-[var(--foreground)] rounded-br-sm border border-[var(--border)]"
-              : isError
+          ${isUser
+            ? "bg-white dark:bg-[var(--muted)] text-[var(--foreground)] dark:text-[var(--foreground)] rounded-br-sm border border-[var(--border)]"
+            : isError
               ? "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300"
               : "bg-[var(--bot-message)] text-[var(--foreground)] rounded-bl-sm border border-[var(--border)]"
           }
@@ -90,7 +131,15 @@ const MessageBubble = ({
       >
         {" "}
         <div className="p-3.5 overflow-hidden break-words whitespace-pre-wrap text-sm">
-          {formatModelOutput ? formatModelOutput(text) : text}
+          {isUser || typewriterComplete ? (
+            formatModelOutput ? formatModelOutput(text) : text
+          ) : (
+            <TypewriterEffect
+              text={text}
+              delay={5}
+              onComplete={() => setTypewriterComplete(true)}
+            />
+          )}
 
           {image && (
             <div className="mt-2">
@@ -107,7 +156,7 @@ const MessageBubble = ({
             </div>
           )}
         </div>{" "}
-        {!isUser && (
+        {!isUser && typewriterComplete && (
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity message-actions flex gap-1 bg-[var(--background)]/80 backdrop-blur-sm p-1 rounded-md shadow-sm border border-[var(--border)]">
             <button
               onClick={copyToClipboard}
@@ -126,6 +175,18 @@ const MessageBubble = ({
           </div>
         )}
       </motion.div>
+
+      <style jsx>{`
+        .typing-cursor {
+          display: inline-block;
+          animation: blink 1s step-end infinite;
+        }
+        
+        @keyframes blink {
+          from, to { opacity: 1; }
+          50% { opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 };

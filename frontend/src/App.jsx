@@ -198,6 +198,7 @@ const App = () => {
         onSendMessage={handleSendMessage}
         onAttachFile={handleAttachFile}
         isTyping={isTyping}
+        darkMode={darkMode}
       />
     </div>
   );
