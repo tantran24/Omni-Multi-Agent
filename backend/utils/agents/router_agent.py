@@ -77,22 +77,55 @@ class BaseAgent:
                 logger.error(error_msg)
                 content += error_msg
 
-        function_call_pattern = r"generate_image\([\"'](.*?)[\"']\)"
-        function_match = re.search(function_call_pattern, content)
-        if function_match and "image" not in artifacts:
-            try:
-                image_prompt = function_match.group(1).strip()
-                logger.info(f"Generating image from function call: {image_prompt}")
-                image_path = generate_image_tool.invoke(image_prompt)
-                artifacts["image"] = image_path
-                content = re.sub(function_call_pattern, "", content)
-                content += f"\n\n![Generated Image]({image_path})"
-            except Exception as e:
-                error_msg = f"\n\nError generating image: {str(e)}"
-                logger.error(error_msg)
-                content += error_msg
+        if "image" not in artifacts:
+            alt_pattern = r"\[(DALLE|DALL-E|DALLE-3|IMAGE)(?:-\d+)?\]\s*generate_image\(([^)]+)\)"
+            alt_image_match = re.search(alt_pattern, content, re.IGNORECASE)
+            if alt_image_match:
+                try:
+                    image_prompt = alt_image_match.group(2).strip()
+                    logger.info(f"Generating image with alternate format prompt: {image_prompt}")
+                    image_path = generate_image_tool.invoke(image_prompt)
+                    artifacts["image"] = image_path
+                    content = re.sub(alt_pattern, "", content, flags=re.IGNORECASE)
+                    content += f"\n\n![Generated Image]({image_path})"
+                except Exception as e:
+                    error_msg = f"\n\nError generating image: {str(e)}"
+                    logger.error(error_msg)
+                    content += error_msg
+
+        if "image" not in artifacts:
+            function_call_pattern = r"generate_image\([\"'](.*?)[\"']\)"
+            function_match = re.search(function_call_pattern, content)
+            if function_match:
+                try:
+                    image_prompt = function_match.group(1).strip()
+                    logger.info(f"Generating image from function call: {image_prompt}")
+                    image_path = generate_image_tool.invoke(image_prompt)
+                    artifacts["image"] = image_path
+                    content = re.sub(function_call_pattern, "", content)
+                    content += f"\n\n![Generated Image]({image_path})"
+                except Exception as e:
+                    error_msg = f"\n\nError generating image: {str(e)}"
+                    logger.error(error_msg)
+                    content += error_msg
+
+        if "image" not in artifacts:
+            generic_pattern = r"(create|generate|make)[\s\w]*image\s+of\s+([^\.]+)"
+            generic_match = re.search(generic_pattern, content, re.IGNORECASE)
+            if generic_match:
+                try:
+                    image_prompt = generic_match.group(2).strip()
+                    logger.info(f"Generating image from generic mention: {image_prompt}")
+                    image_path = generate_image_tool.invoke(image_prompt)
+                    artifacts["image"] = image_path
+                    content += f"\n\n![Generated Image]({image_path})"
+                except Exception as e:
+                    error_msg = f"\n\nError generating image: {str(e)}"
+                    logger.error(error_msg)
+                    content += error_msg
 
         return content, artifacts
+
 
     def invoke(
         self, message: HumanMessage, chat_history: List[BaseMessage] = None

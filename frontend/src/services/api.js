@@ -9,23 +9,38 @@ const api = axios.create({
   },
 });
 
-export const chatWithLLM = async (message) => {
+export const chatWithLLM = async (message, formData) => {
   try {
-    const response = await api.post("/chat", { message });
+    let response;
 
-    if (!response.data?.response) {
-      throw new Error("Invalid response format");
+    if (formData) {
+      const formApi = axios.create({
+        baseURL: API_URL,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      response = await formApi.post("/chat-with-image", formData);
+    } else {
+      response = await api.post("/chat", { message });
+    }
+
+    console.log("API Response:", response.data);
+
+    if (response.data === undefined) {
+      throw new Error("Empty response from server");
     }
 
     return {
-      response: response.data.response,
+      response: response.data.response || "",
       image: response.data.image,
     };
   } catch (error) {
+    console.error("API Error:", error);
     throw new Error(
       error.response?.data?.detail ||
-      error.message ||
-      "An unexpected error occurred"
+        error.message ||
+        "An unexpected error occurred"
     );
   }
 };
@@ -56,8 +71,8 @@ export const uploadVoiceRecording = async (audioChunks) => {
   } catch (error) {
     throw new Error(
       error.response?.data?.detail ||
-      error.message ||
-      "Failed to transcribe audio"
+        error.message ||
+        "Failed to transcribe audio"
     );
   }
 };

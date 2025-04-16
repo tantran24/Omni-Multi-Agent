@@ -22,7 +22,6 @@ const App = () => {
   });
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Set dark mode class on body
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -32,7 +31,6 @@ const App = () => {
     localStorage.setItem("darkMode", darkMode);
   }, [darkMode]);
 
-  // Save chat history to localStorage
   useEffect(() => {
     localStorage.setItem("chatHistory", JSON.stringify(messages));
   }, [messages]);
@@ -47,7 +45,6 @@ const App = () => {
         timestamp: new Date().toISOString(),
       };
 
-      // If there's an image file, add it to the message
       if (imageFile) {
         newUserMessage.image = URL.createObjectURL(imageFile);
       }
@@ -55,31 +52,36 @@ const App = () => {
       setMessages((prev) => [...prev, newUserMessage]);
       setIsTyping(true);
 
-      // If you need to send the image to the backend, you can use FormData
       let response;
       if (imageFile) {
         const formData = new FormData();
         formData.append("text", text || "");
         formData.append("image", imageFile);
 
-        // You'll need to implement an API method that accepts FormData
-        // This is just an example, you'll need to adapt it to your API
         response = await chatWithLLM(text, formData);
       } else {
         response = await chatWithLLM(text);
       }
-
-      if (response && response.response) {
+      if (response) {
         const botMessage = {
-          text: response.response,
+          text: response.response || "",
           isUser: false,
           timestamp: new Date().toISOString(),
         };
 
         if (response.image) {
-          const serverUrl =
-            process.env.REACT_APP_API_URL || "http://localhost:8000";
-          botMessage.image = `${serverUrl}${response.image}`;
+          try {
+            const serverUrl =
+              import.meta.env.VITE_API_URL || "http://localhost:8000";
+            const imageUrl = response.image.startsWith("/")
+              ? `${serverUrl}${response.image}`
+              : `${serverUrl}/${response.image}`;
+
+            botMessage.image = imageUrl;
+            console.log("Image URL:", botMessage.image);
+          } catch (err) {
+            console.error("Error forming image URL:", err);
+          }
         }
 
         setMessages((prev) => [...prev, botMessage]);
@@ -113,10 +115,8 @@ const App = () => {
   const handleAttachFile = (files) => {
     if (!files || files.length === 0) return;
 
-    // For now, we'll just handle the first file
     const file = files[0];
 
-    // Create a message with the attached image
     handleSendMessage("", file);
   };
 
@@ -126,7 +126,6 @@ const App = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--background)] text-[var(--foreground)] transition-colors duration-200">
-      {/* Header with modern styling */}
       <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--background)] backdrop-blur-sm">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">

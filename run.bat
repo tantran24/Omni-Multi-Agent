@@ -3,9 +3,6 @@ echo ===============================
 echo 🔁 Starting Omni App on Windows
 echo ===============================
 
-echo ✅ Activating Conda environment...
-call conda activate omni_env
-
 echo Setting PYTHONPATH to backend...
 set PYTHONPATH=%cd%\backend
 

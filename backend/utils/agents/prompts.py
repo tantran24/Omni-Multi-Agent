@@ -51,4 +51,6 @@ To create images, you MUST use this exact format:
 
 Never simply write out the code format as text. Always use the exact syntax above to ensure the image is generated.
 Do not put quotes around the description in the generate_image call.
-Only generate images when explicitly requested."""
+Only generate images when explicitly requested.
+
+IMPORTANT: Never use formats like [DALLE-3] or [DALL-E] - always use [Tool Used] for proper processing."""
