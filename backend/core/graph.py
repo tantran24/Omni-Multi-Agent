@@ -71,17 +71,19 @@ def create_agent_graph():
                 )
 
                 updated_state = state.copy()
-                
+
                 if "delegation" in response:
                     delegation = response["delegation"]
                     target_agent = delegation.get("target_agent")
                     logger.info(f"Agent {agent_name} delegated to {target_agent}")
-                    
+
                     updated_state["current_agent"] = target_agent
                     updated_state["output"] = response["messages"][0].content
-                    updated_state["chat_history"] = chat_history + [human_message] + response["messages"]
+                    updated_state["chat_history"] = (
+                        chat_history + [human_message] + response["messages"]
+                    )
                     return updated_state
-                
+
                 updated_state["output"] = response["messages"][0].content
                 updated_state["chat_history"] = (
                     chat_history + [human_message] + response["messages"]
@@ -108,10 +110,24 @@ def create_agent_graph():
         if current_agent == "assistant":
             user_input = state.get("input", "").lower()
             image_keywords = [
-                "draw", "image", "picture", "generate image", "create image", 
-                "visualize", "create a picture", "make an image", "render",
-                "illustration", "artwork", "design", "sketch", "depict", 
-                "drawing of", "photo of", "show me", "create a visual"
+                "draw",
+                "image",
+                "picture",
+                "generate image",
+                "create image",
+                "visualize",
+                "create a picture",
+                "make an image",
+                "render",
+                "illustration",
+                "artwork",
+                "design",
+                "sketch",
+                "depict",
+                "drawing of",
+                "photo of",
+                "show me",
+                "create a visual",
             ]
 
             if any(keyword in user_input for keyword in image_keywords):

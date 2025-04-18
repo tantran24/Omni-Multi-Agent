@@ -76,3 +76,23 @@ export const uploadVoiceRecording = async (audioChunks) => {
     );
   }
 };
+
+// MCP config management
+export const listMcpConfigs = async () => {
+  const response = await api.get("/mcp/configs");
+  return response.data;
+};
+
+export const addMcpConfig = async (mapping) => {
+  // mapping: { toolName: configObject, ... }
+  return api.post("/mcp/configs", mapping);
+};
+
+export const deleteMcpConfig = async (name) => {
+  return api.delete(`/mcp/configs/${name}`);
+};
+
+export const listMcpTools = async () => {
+  const response = await api.get("/mcp/tools");
+  return response.data;
+};

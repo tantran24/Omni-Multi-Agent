@@ -22,8 +22,8 @@ const TypewriterEffect = ({ text, delay = 3, onComplete }) => {
   useEffect(() => {
     if (currentIndex < text.length) {
       const timer = setTimeout(() => {
-        setDisplayedText(prev => prev + text[currentIndex]);
-        setCurrentIndex(prevIndex => prevIndex + 1);
+        setDisplayedText((prev) => prev + text[currentIndex]);
+        setCurrentIndex((prevIndex) => prevIndex + 1);
       }, delay);
 
       return () => clearTimeout(timer);
@@ -36,9 +36,7 @@ const TypewriterEffect = ({ text, delay = 3, onComplete }) => {
   return (
     <>
       {formatModelOutput ? formatModelOutput(displayedText) : displayedText}
-      {!isComplete && (
-        <span className="typing-cursor">|</span>
-      )}
+      {!isComplete && <span className="typing-cursor">|</span>}
     </>
   );
 };
@@ -46,7 +44,7 @@ const TypewriterEffect = ({ text, delay = 3, onComplete }) => {
 TypewriterEffect.propTypes = {
   text: PropTypes.string.isRequired,
   delay: PropTypes.number,
-  onComplete: PropTypes.func
+  onComplete: PropTypes.func,
 };
 
 const MessageBubble = ({
@@ -62,10 +60,10 @@ const MessageBubble = ({
 
   const formattedTimestamp = timestamp
     ? new Date(timestamp).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    })
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
     : "";
 
   const copyToClipboard = () => {
@@ -121,9 +119,10 @@ const MessageBubble = ({
         className={`
           relative group max-w-[80%] md:max-w-[65%] w-fit
           rounded-lg shadow-message
-          ${isUser
-            ? "bg-white dark:bg-[var(--muted)] text-[var(--foreground)] dark:text-[var(--foreground)] rounded-br-sm border border-[var(--border)]"
-            : isError
+          ${
+            isUser
+              ? "bg-white dark:bg-[var(--muted)] text-[var(--foreground)] dark:text-[var(--foreground)] rounded-br-sm border border-[var(--border)]"
+              : isError
               ? "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300"
               : "bg-[var(--bot-message)] text-[var(--foreground)] rounded-bl-sm border border-[var(--border)]"
           }
@@ -132,7 +131,11 @@ const MessageBubble = ({
         {" "}
         <div className="p-3.5 overflow-hidden break-words whitespace-pre-wrap text-sm">
           {isUser || typewriterComplete ? (
-            formatModelOutput ? formatModelOutput(text) : text
+            formatModelOutput ? (
+              formatModelOutput(text)
+            ) : (
+              text
+            )
           ) : (
             <TypewriterEffect
               text={text}
@@ -181,10 +184,15 @@ const MessageBubble = ({
           display: inline-block;
           animation: blink 1s step-end infinite;
         }
-        
+
         @keyframes blink {
-          from, to { opacity: 1; }
-          50% { opacity: 0; }
+          from,
+          to {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0;
+          }
         }
       `}</style>
     </div>

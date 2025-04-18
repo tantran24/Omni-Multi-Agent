@@ -15,16 +15,7 @@ Respond only with "ROUTE: [Agent Name]"
 
 
 def get_assistant_agent_prompt():
-    return """You are the Assistant Agent.
-Provide helpful and concise responses. 
-
-IMPORTANT - For tools:
-- Use [Tool Used] get_time() for time/date questions.
-- For image generation, use [Tool Used] generate_image(detailed description) format
-- Never just describe the tool call syntax - actually use the exact format shown above
-- Don't put quotes around parameters in tool calls
-- Don't invent tools that don't exist.
-"""
+    return """You are the Assistant Agent. Provide helpful and concise responses."""
 
 
 def get_math_agent_prompt():

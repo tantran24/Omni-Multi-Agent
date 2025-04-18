@@ -5,6 +5,7 @@ import { chatWithLLM } from "./services/api";
 import { Button } from "./components/ui/Button";
 import { Moon, Sun, RotateCcw, Menu } from "lucide-react";
 import "./App.css";
+import McpManager from "./components/mcp/McpManager"; // import MCP Manager
 
 const App = () => {
   const [messages, setMessages] = useState(() => {
@@ -21,6 +22,7 @@ const App = () => {
     );
   });
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showMcpManager, setShowMcpManager] = useState(false); // MCP manager visibility
 
   useEffect(() => {
     if (darkMode) {
@@ -160,6 +162,17 @@ const App = () => {
             </button>
 
             <Button
+              onClick={() => {
+                console.log("MCP Tools button clicked");
+                setShowMcpManager(true);
+              }}
+              variant="primary"
+              className="flex items-center gap-2"
+            >
+              MCP Tools
+            </Button>
+
+            <Button
               onClick={clearHistory}
               className="hidden md:flex items-center gap-2 bg-[var(--accent)] hover:bg-[var(--accent)]/80 text-[var(--accent-foreground)]"
               variant="outline"
@@ -174,6 +187,16 @@ const App = () => {
           <div className="lg:hidden border-t border-[var(--border)] bg-[var(--background)]">
             <div className="container mx-auto p-4 flex flex-col gap-2">
               <Button
+                onClick={() => {
+                  console.log("MCP Tools (mobile) clicked");
+                  setShowMcpManager(true);
+                }}
+                variant="primary"
+                className="flex items-center justify-center gap-2 w-full"
+              >
+                MCP Tools
+              </Button>
+              <Button
                 onClick={clearHistory}
                 className="flex items-center justify-center gap-2 w-full"
                 variant="outline"
@@ -183,8 +206,12 @@ const App = () => {
               </Button>
             </div>
           </div>
-        )}{" "}
+        )}
       </header>
+
+      {showMcpManager && (
+        <McpManager onClose={() => setShowMcpManager(false)} />
+      )}
 
       <ChatBox
         messages={messages}

@@ -6,6 +6,9 @@ from utils.api.endpoints import router
 from core.config import Config
 import os
 import logging
+import asyncio
+from services.mcp_service import detach_mcp_service
+from core.mcp_initializer import apply_mcp_fixes
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,6 +22,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    logger.info("Initializing MCP service...")
+    try:
+        apply_mcp_fixes()
+
+        await detach_mcp_service.initialize_client()
+        tools = detach_mcp_service.get_tools()
+        logger.info(f"MCP service initialized with {len(tools)} tools")
+    except Exception as e:
+        logger.error(f"Error initializing MCP service: {e}")
+
 
 os.makedirs("generated_images", exist_ok=True)
 app.mount(
