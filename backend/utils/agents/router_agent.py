@@ -1,10 +1,11 @@
-from typing import List, Dict, Any, Optional, Callable
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
-from langchain_ollama import ChatOllama
-from core.config import Config
+from typing import List, Dict, Any, Optional
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 import logging
+import re
+from services.mcp_service import detach_mcp_service
+from .base_agent import BaseAgent
+from .tools import get_tools_for_agent, get_time_tool, generate_image_tool
 from .prompts import (
-    get_system_prompt,
     get_router_prompt,
     get_assistant_agent_prompt,
     get_image_agent_prompt,
@@ -12,148 +13,82 @@ from .prompts import (
     get_research_agent_prompt,
     get_planning_agent_prompt,
 )
-from .tools import get_tools_for_agent, get_time_tool, generate_image_tool
-import re
 
 logger = logging.getLogger(__name__)
 
 
-class BaseAgent:
-    """Base class for all specialized agents"""
-
-    def __init__(self, llm=None):
-        self.llm = llm or self._create_llm()
-        self.agent_type = "base"
-        self.agent_name = "Base Agent"
-        self.tools = []
-
-    def _create_llm(self) -> ChatOllama:
-        """Create a language model instance for this agent"""
-        return ChatOllama(
-            model=Config.LLM_MODEL,
-            base_url=Config.OLLAMA_BASE_URL,
-            retry_on_failure=True,
-            seed=42,
-            temperature=Config.LLM_TEMPERATURE,
-            timeout=Config.LLM_TIMEOUT,
-            num_ctx=Config.LLM_CONTEXT_LENGTH,
-            streaming=Config.ENABLE_STREAMING,
-            # Added recommended Gemma parameters
-            top_k=Config.LLM_TOP_K,
-            top_p=Config.LLM_TOP_P,
-            min_p=Config.LLM_MIN_P,
-            repeat_penalty=Config.LLM_REPETITION_PENALTY,
-        )
-
-    def get_system_prompt(self) -> str:
-        """Get the system prompt for this agent"""
-        # Include available tools in the system prompt
-        tools_desc = ""
-        if self.tools:
-            tools_desc = "\n\nYou have access to the following tools:\n"
-            for tool in self.tools:
-                tools_desc += f"- {tool.name}: {tool.description}\n"
-
-            tools_desc += (
-                "\nUse these tools when appropriate by formatting your response like:\n"
-            )
-            tools_desc += "[Tool Used] tool_name(parameter)"
-
-        return f"{get_system_prompt()}\n\nYou are the {self.agent_name}. Focus on your specialty.{tools_desc}"
-
-    def process_response(self, content: str) -> Dict[str, Any]:
-        """Process the LLM response and extract any artifacts or process tool calls"""
-        content = self.process_tool_calls(content)
-        return {
-            "content": content,
-            "artifacts": {},
-        }
-
-    def process_tool_calls(self, content: str) -> str:
-        """Process tool calls in the content"""
-        # Process get_time tool
-        if "[Tool Used] get_time(" in content:
-            try:
-                time_result = get_time_tool.invoke({})
-                content = content.replace("[Tool Used] get_time()", time_result)
-            except Exception as e:
-                logger.error(f"Error using get_time tool: {str(e)}")
-                content += f"\nError getting time: {str(e)}"
-
-        return content
-
-    def invoke(
-        self, message: HumanMessage, chat_history: List[BaseMessage] = None
-    ) -> Dict[str, Any]:
-        """Invoke the agent with a message and optional chat history"""
-        if chat_history is None:
-            chat_history = []
-
-        system_prompt = self.get_system_prompt()
-
-        # Only include recent history for context
-        recent_history = chat_history[-4:] if len(chat_history) > 4 else chat_history
-
-        messages = [
-            SystemMessage(content=system_prompt),
-            *recent_history,
-            message,
-        ]
-
-        response = self.llm.invoke(messages)
-        processed = self.process_response(response.content)
-
-        return {
-            "messages": [AIMessage(content=processed["content"])],
-            "chat_history": [message, AIMessage(content=processed["content"])],
-            "artifacts": processed.get("artifacts", {}),
-        }
-
-
 class RouterAgent(BaseAgent):
     """Router agent that directs messages to specialized agents"""
-
     def __init__(self):
         super().__init__()
         self.agent_type = "router"
         self.agent_name = "Router Agent"
-        self.llm = ChatOllama(
-            model=Config.LLM_MODEL,
-            base_url=Config.OLLAMA_BASE_URL,
-            retry_on_failure=True,
-            seed=42,
-            temperature=0.1,
-            timeout=5,
-            num_retries=1,
-            num_ctx=1024,
-            top_k=Config.LLM_TOP_K,
-            top_p=0.8,
-            min_p=Config.LLM_MIN_P,
-            repeat_penalty=Config.LLM_REPETITION_PENALTY,
-        )
-        self.tools = []
-
+        
+        self._ensure_mcp_initialized()
+        
+        self.initialize_tools()
+        
+    def _ensure_mcp_initialized(self):
+        """Ensure MCP service is initialized"""
+        try:
+            import asyncio
+            loop = asyncio.get_event_loop()
+            if not detach_mcp_service.initialized:
+                try:
+                    if loop.is_running():
+                        asyncio.create_task(detach_mcp_service.initialize_client())
+                    else:
+                        loop.run_until_complete(detach_mcp_service.initialize_client())
+                except RuntimeError as re:
+                    if "There is no current event loop" in str(re):
+                        new_loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(new_loop)
+                        new_loop.run_until_complete(detach_mcp_service.initialize_client())
+            
+            status = "initialized" if detach_mcp_service.initialized else "failed to initialize"
+            logger.info(f"MCP service status: {status}")
+        except Exception as e:
+            logger.error(f"Error initializing MCP service: {e}")
+            
     def get_system_prompt(self) -> str:
-        """Get the specialized router prompt"""
-        return get_router_prompt()
+        """Get the specialized router prompt including MCP tool names"""
+        prompt = get_router_prompt()
+        
+        self._ensure_mcp_initialized()
+        
+        mcp_tools = detach_mcp_service.get_tools()
+        if mcp_tools:
+            tool_names = [t.name for t in mcp_tools]
+            prompt += "\n\nAvailable MCP tools: " + ", ".join(tool_names)
+            prompt += "\n\nMCP Tool Details:"
+            for tool in mcp_tools:
+                prompt += f"\n- {tool.name}: {tool.description}"
+                if hasattr(tool, 'args_schema') and tool.args_schema:
+                    try:
+                        param_names = list(tool.args_schema.__annotations__.keys())
+                        if param_names:
+                            prompt += f" (Parameters: {param_names})"
+                    except Exception:
+                        pass
+        
+        return prompt
 
     def create_specialized_agent(self, agent_type: str) -> BaseAgent:
         """Factory method to create specialized agents"""
-        if agent_type == "assistant":
-            return AssistantAgent(self.llm)
-        elif agent_type == "image":
-            return ImageAgent(self.llm)
-        elif agent_type == "math":
-            return MathAgent(self.llm)
-        elif agent_type == "research":
-            return ResearchAgent(self.llm)
-        elif agent_type == "planning":
-            return PlanningAgent(self.llm)
-        else:
-            logger.warning(
-                f"Unknown agent type: {agent_type}, defaulting to AssistantAgent"
-            )
-            return AssistantAgent(self.llm)
+        agent_type = agent_type.lower()
+        agent_map = {
+            "assistant": AssistantAgent,
+            "image": ImageAgent,
+            "math": MathAgent,
+            "research": ResearchAgent,
+            "planning": PlanningAgent
+        }
+        
+        if agent_type in agent_map:
+            return agent_map[agent_type](self.llm)
+        
+        logger.warning(f"Unknown agent type: {agent_type}, defaulting to AssistantAgent")
+        return AssistantAgent(self.llm)
 
 
 class AssistantAgent(BaseAgent):
@@ -163,11 +98,19 @@ class AssistantAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "assistant"
         self.agent_name = "Assistant Agent"
-        self.tools = get_tools_for_agent("assistant")
-
+        self.initialize_tools()
+        
     def get_system_prompt(self) -> str:
-        """Get the specialized assistant prompt"""
-        return get_assistant_agent_prompt()
+        """Get the specialized assistant prompt including tool descriptions"""
+        system_prompt = get_assistant_agent_prompt()
+        if self.tools:
+            tool_lines = [f"- {tool.name}: {tool.description}" for tool in self.tools]
+            tools_desc = "\n\nYou have access to the following tools:\n" + "\n".join(tool_lines)
+            tools_desc += "\n\nUse tools by indicating \"[Tool Used] tool_name(args)\" in your response."
+        else:
+            tools_desc = ""
+            
+        return f"{system_prompt}{tools_desc}"
 
 
 class MathAgent(BaseAgent):
@@ -177,10 +120,9 @@ class MathAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "math"
         self.agent_name = "Math Agent"
-        self.tools = []
+        self.initialize_tools()
 
     def get_system_prompt(self) -> str:
-        """Get the specialized math prompt"""
         return get_math_agent_prompt()
 
 
@@ -191,10 +133,9 @@ class ResearchAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "research"
         self.agent_name = "Research Agent"
-        self.tools = []
+        self.initialize_tools()
 
     def get_system_prompt(self) -> str:
-        """Get the specialized research prompt"""
         return get_research_agent_prompt()
 
 
@@ -205,10 +146,9 @@ class PlanningAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "planning"
         self.agent_name = "Planning Agent"
-        self.tools = []
+        self.initialize_tools()
 
     def get_system_prompt(self) -> str:
-        """Get the specialized planning prompt"""
         return get_planning_agent_prompt()
 
 
@@ -219,37 +159,10 @@ class ImageAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "image"
         self.agent_name = "Image Agent"
-        self.tools = get_tools_for_agent("image")
-
+        self.initialize_tools()
+        
     def get_system_prompt(self) -> str:
-        """Get the specialized image agent prompt"""
         return get_image_agent_prompt()
-
-    def process_response(self, content: str) -> Dict[str, Any]:
-        """Process the image generation response and handle tool calls"""
-        artifacts = {}
-
-        # Look for image generation tool calls
-        image_match = re.search(r"\[Tool Used\] generate_image\(([^)]+)\)", content)
-        if image_match:
-            try:
-                image_prompt = image_match.group(1).strip()
-                logger.info(f"Generating image with prompt: {image_prompt}")
-                image_path = generate_image_tool.invoke(image_prompt)
-                artifacts = {"image": image_path}
-                # Add a reference to the image in the content
-                content = re.sub(r"\[Tool Used\] generate_image\([^)]+\)", "", content)
-                content += f"\n\n![Generated Image]({image_path})"
-
-            except Exception as e:
-                error_msg = f"\n\nError generating image: {str(e)}"
-                logger.error(error_msg)
-                content += error_msg
-
-        return {
-            "content": content,
-            "artifacts": artifacts,
-        }
 
 
 class ChatAgent:
@@ -272,7 +185,6 @@ class ChatAgent:
             if self.agent_executor is None:
                 return "Agent executor not initialized"
 
-            # Create the input state for the graph
             input_state = {
                 "input": prompt,
                 "chat_history": self.chat_history,
@@ -281,19 +193,15 @@ class ChatAgent:
                 "artifacts": {},
             }
 
-            # Process the message through the agent graph
             try:
-                # Use .invoke() method for compiled graphs rather than calling directly
                 response = self.agent_executor.invoke(input_state)
 
                 if isinstance(response, dict):
                     output = response.get("output", "")
 
-                    # Update chat history if available
                     if "chat_history" in response:
                         self.chat_history = response["chat_history"]
 
-                    # Handle any artifacts (like images)
                     artifacts = response.get("artifacts", {})
                     if "image" in artifacts:
                         image_path = artifacts["image"]
@@ -302,9 +210,7 @@ class ChatAgent:
 
                     return output
                 else:
-                    raise ValueError(
-                        f"Invalid response format from agent: {type(response)}"
-                    )
+                    raise ValueError(f"Invalid response format from agent: {type(response)}")
 
             except Exception as e:
                 logger.error(f"Graph execution error: {str(e)}")

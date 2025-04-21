@@ -46,14 +46,11 @@ def create_agent_graph():
 
             human_message = HumanMessage(content=state["input"])
             chat_history = state.get("chat_history", [])
-
-            # For the router node specifically, determine the agent type
             if agent_name == "router":
                 response = agent.invoke(
                     message=human_message, chat_history=chat_history
                 )
 
-                # Extract the agent type from the response
                 ai_message = response["messages"][0]
                 content = ai_message.content
                 match = re.search(r"ROUTE:\s*(.*?)(?:\s|$)", content, re.IGNORECASE)
@@ -69,12 +66,24 @@ def create_agent_graph():
 
                 return updated_state
             else:
-                # For specialized agents
                 response = agent.invoke(
                     message=human_message, chat_history=chat_history
                 )
 
                 updated_state = state.copy()
+
+                if "delegation" in response:
+                    delegation = response["delegation"]
+                    target_agent = delegation.get("target_agent")
+                    logger.info(f"Agent {agent_name} delegated to {target_agent}")
+
+                    updated_state["current_agent"] = target_agent
+                    updated_state["output"] = response["messages"][0].content
+                    updated_state["chat_history"] = (
+                        chat_history + [human_message] + response["messages"]
+                    )
+                    return updated_state
+
                 updated_state["output"] = response["messages"][0].content
                 updated_state["chat_history"] = (
                     chat_history + [human_message] + response["messages"]
@@ -94,15 +103,10 @@ def create_agent_graph():
 
     def route_to_agent(state: AgentState) -> str:
         """Route to the appropriate agent based on router's decision"""
-        # Safely get the current_agent with a default
         current_agent = state.get("current_agent")
-
-        # Handle None case
         if current_agent is None:
             logger.info("No agent specified, defaulting to assistant")
             return "assistant"
-
-        # Handle image keyword detection as a fallback
         if current_agent == "assistant":
             user_input = state.get("input", "").lower()
             image_keywords = [
@@ -115,17 +119,24 @@ def create_agent_graph():
                 "create a picture",
                 "make an image",
                 "render",
+                "illustration",
+                "artwork",
+                "design",
+                "sketch",
+                "depict",
+                "drawing of",
+                "photo of",
+                "show me",
+                "create a visual",
             ]
 
             if any(keyword in user_input for keyword in image_keywords):
                 logger.info("Image keyword detected, routing to image agent instead")
                 return "image"
 
-        # Convert to lowercase
         current_agent = current_agent.lower()
         logger.info(f"Routing to agent: {current_agent}")
 
-        # Check if agent exists
         return current_agent if current_agent in agents else "assistant"
 
     workflow.add_conditional_edges(

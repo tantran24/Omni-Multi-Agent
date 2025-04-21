@@ -1,20 +1,3 @@
-fastapi
-uvicorn
-langchain
-langgraph
-openai
-tiktoken
-requests
-langchain-community 
-langchain-core
-Pillow
-SpeechRecognition
-pyttsx3
-langchain-ollama
-diffusers
-transformers
-torch
-accelerate
-safetensors
-huggingface_hub
-peft
+langchain-mcp-adapters
+nest_asyncio
+# add mcp adapters dependency if missing
