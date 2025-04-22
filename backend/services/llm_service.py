@@ -1,7 +1,6 @@
-import asyncio
 from typing import Optional
 from core.graph import create_agent_graph
-from utils.agents.router_agent import ChatAgent
+from utils.agents.chat_agent import ChatAgent
 import logging
 from langchain_core.runnables import RunnableConfig
 
@@ -9,38 +8,34 @@ logger = logging.getLogger(__name__)
 
 
 class LLMService:
+    """Service to manage LLM interactions and agent coordination"""
+
     def __init__(self):
         self.chat_agent: Optional[ChatAgent] = None
         self.initialized = False
-        self.initializing = False
-        self._initialize_lock = asyncio.Lock()
 
-    async def ensure_initialized(self):
-        """Ensure the service is initialized in a thread-safe manner"""
-        if not self.initialized and not self.initializing:
-            async with self._initialize_lock:
-                if not self.initialized:
-                    try:
-                        self.initializing = True
-                        logger.info("Initializing LLM service...")
+    async def initialize(self) -> None:
+        """Initialize the service asynchronously"""
+        if self.initialized:
+            return
 
-                        # Create the agent graph
-                        agent_graph = create_agent_graph()
+        try:
+            self.chat_agent = ChatAgent()
+            graph = await create_agent_graph()
+            self.chat_agent.set_agent_executor(graph)
+            self.initialized = True
+            logger.info("LLM service initialized successfully")
+        except Exception as e:
+            logger.error(f"Error initializing LLM service: {e}")
+            raise
 
-                        # Create and configure the chat agent
-                        self.chat_agent = ChatAgent()
-                        self.chat_agent.set_agent_executor(agent_graph)
-
-                        self.initialized = True
-                        logger.info("LLM service initialization complete")
-                    except Exception as e:
-                        logger.error(f"Initialization error: {str(e)}")
-                        raise
-                    finally:
-                        self.initializing = False
+    async def ensure_initialized(self) -> None:
+        """Ensure the service is initialized"""
+        if not self.initialized:
+            await self.initialize()
 
     async def process_message(self, message: str) -> str:
-        """Process a message through the agent graph"""
+        """Process a message through the agent graph asynchronously"""
         await self.ensure_initialized()
 
         if not self.chat_agent:
@@ -48,10 +43,7 @@ class LLMService:
 
         try:
             config = RunnableConfig(recursion_limit=25)
-
-            return await asyncio.get_event_loop().run_in_executor(
-                None, lambda: self.chat_agent.chat(message)
-            )
+            return await self.chat_agent.achat(message)
         except Exception as e:
             logger.error(f"Message processing error: {str(e)}")
             raise

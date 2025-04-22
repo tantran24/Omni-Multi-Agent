@@ -207,17 +207,19 @@ const App = () => {
             </div>
           </div>
         )}
-      </header>{" "}
-      <McpManager
-        isOpen={showMcpManager}
-        onClose={() => setShowMcpManager(false)}
-      />
+      </header>
+
+      {showMcpManager && (
+        <McpManager onClose={() => setShowMcpManager(false)} />
+      )}
+
       <ChatBox
         messages={messages}
         isTyping={isTyping}
         darkMode={darkMode}
         onPromptClick={handleStarterPrompt}
       />
+
       <MessageInput
         onSendMessage={handleSendMessage}
         onAttachFile={handleAttachFile}

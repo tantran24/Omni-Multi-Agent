@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, TypedDict, Optional, cast
+from typing import Dict, List, Any, TypedDict, Optional
 from langchain_core.messages import BaseMessage, HumanMessage
 from langgraph.graph import StateGraph, END
 from utils.agents.router_agent import (
@@ -24,8 +24,8 @@ class AgentState(TypedDict):
     artifacts: Optional[Dict[str, Any]]
 
 
-def create_agent_graph():
-    """Create a directed graph for agent routing and execution"""
+async def create_agent_graph():
+    """Create an async-aware directed graph for agent routing and execution"""
     agents = {
         "router": RouterAgent(),
         "assistant": AssistantAgent(),
@@ -35,10 +35,15 @@ def create_agent_graph():
         "planning": PlanningAgent(),
     }
 
+    # Initialize all agents' tools in parallel
+    import asyncio
+
+    await asyncio.gather(*(agent.initialize_tools() for agent in agents.values()))
+
     workflow = StateGraph(AgentState)
 
-    def create_agent_node(agent_name: str):
-        def node_func(
+    async def create_agent_node(agent_name: str):
+        async def node_func(
             state: AgentState, config: Optional[RunnableConfig] = None
         ) -> AgentState:
             agent = agents[agent_name]
@@ -46,11 +51,11 @@ def create_agent_graph():
 
             human_message = HumanMessage(content=state["input"])
             chat_history = state.get("chat_history", [])
+
             if agent_name == "router":
-                response = agent.invoke(
+                response = await agent.invoke(
                     message=human_message, chat_history=chat_history
                 )
-
                 ai_message = response["messages"][0]
                 content = ai_message.content
                 match = re.search(r"ROUTE:\s*(.*?)(?:\s|$)", content, re.IGNORECASE)
@@ -66,10 +71,9 @@ def create_agent_graph():
 
                 return updated_state
             else:
-                response = agent.invoke(
+                response = await agent.invoke(
                     message=human_message, chat_history=chat_history
                 )
-
                 updated_state = state.copy()
 
                 if "delegation" in response:
@@ -97,7 +101,7 @@ def create_agent_graph():
         return node_func
 
     for agent_name in agents:
-        workflow.add_node(agent_name, create_agent_node(agent_name))
+        workflow.add_node(agent_name, await create_agent_node(agent_name))
 
     workflow.set_entry_point("router")
 
@@ -107,6 +111,7 @@ def create_agent_graph():
         if current_agent is None:
             logger.info("No agent specified, defaulting to assistant")
             return "assistant"
+
         if current_agent == "assistant":
             user_input = state.get("input", "").lower()
             image_keywords = [

@@ -1,3 +1,5 @@
+"""LLM Wrapper with async support for different LLM providers"""
+
 from typing import List
 from langchain_core.messages import BaseMessage
 from langchain_community.chat_models import ChatOllama
@@ -40,9 +42,10 @@ class LLMWrapper:
                 repeat_penalty=Config.LLM_REPETITION_PENALTY,
             )
 
-    def invoke(self, messages: List[BaseMessage]) -> str:
+    async def invoke(self, messages: List[BaseMessage]) -> BaseMessage:
+        """Invoke the LLM model asynchronously"""
         try:
-            response = self.model.invoke(messages)
+            response = await self.model.ainvoke(messages)
             return response
         except Exception as e:
             logger.error(f"[LLMWrapper] Invoke error ({self.provider}): {e}")
