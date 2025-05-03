@@ -15,6 +15,7 @@ class Config:
     # Google AI Studio
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
     GOOGLE_MODEL = os.getenv("GOOGLE_MODEL", "gemini-pro")
+    GOOGLE_IMAGE_GENERATOR_MODEL = os.getenv("GOOGLE_IMAGE_GENERATOR_MODEL", "gemini-2.0-flash-exp-image-generation")
 
     # Ollama
     OLLAMA_BASE_URL: str = "http://localhost:11434"
