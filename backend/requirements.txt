@@ -1,3 +1,4 @@
 langchain-mcp-adapters
 nest_asyncio
+elevenlabs
 # add mcp adapters dependency if missing

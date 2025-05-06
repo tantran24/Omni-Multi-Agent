@@ -45,6 +45,7 @@ get_time_tool = Tool(
 
 TOOL_REGISTRY = {
     "assistant": [get_time_tool],
+    "voice_assistant": [get_time_tool],
     "image": [generate_image_tool],
     "all": [generate_image_tool, get_time_tool],
 }

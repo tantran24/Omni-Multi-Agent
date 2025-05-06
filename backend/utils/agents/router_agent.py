@@ -12,6 +12,7 @@ from .prompts import (
     get_math_agent_prompt,
     get_research_agent_prompt,
     get_planning_agent_prompt,
+    get_conversation_assistant_agent_prompt,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,8 +26,7 @@ class RouterAgent(BaseAgent):
         self.agent_name = "Router Agent"
         
         self._ensure_mcp_initialized()
-        
-        self.initialize_tools()
+
         
     def _ensure_mcp_initialized(self):
         """Ensure MCP service is initialized"""
@@ -98,7 +98,7 @@ class AssistantAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "assistant"
         self.agent_name = "Assistant Agent"
-        self.initialize_tools()
+
         
     def get_system_prompt(self) -> str:
         """Get the specialized assistant prompt including tool descriptions"""
@@ -120,7 +120,6 @@ class MathAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "math"
         self.agent_name = "Math Agent"
-        self.initialize_tools()
 
     def get_system_prompt(self) -> str:
         return get_math_agent_prompt()
@@ -133,7 +132,7 @@ class ResearchAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "research"
         self.agent_name = "Research Agent"
-        self.initialize_tools()
+
 
     def get_system_prompt(self) -> str:
         return get_research_agent_prompt()
@@ -146,7 +145,6 @@ class PlanningAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "planning"
         self.agent_name = "Planning Agent"
-        self.initialize_tools()
 
     def get_system_prompt(self) -> str:
         return get_planning_agent_prompt()
@@ -159,63 +157,28 @@ class ImageAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "image"
         self.agent_name = "Image Agent"
-        self.initialize_tools()
         
     def get_system_prompt(self) -> str:
         return get_image_agent_prompt()
 
 
-class ChatAgent:
-    """Main chat agent that uses the multi-agent graph for processing queries"""
+class ConversationAssistantAgent(BaseAgent):
+    """General voice assistant agent for conversation"""
 
-    def __init__(self):
-        self.chat_history: List[BaseMessage] = []
-        self.agent_executor = None
+    def __init__(self, llm=None):
+        super().__init__(llm)
+        self.agent_type = "voice_assistant"
+        self.agent_name = "Voice Assistant Agent"
+        self.initialize_tools()
 
-    def set_agent_executor(self, executor):
-        """Set the agent executor function from the graph"""
-        self.agent_executor = executor
+    def get_system_prompt(self) -> str:
+        """Get the specialized assistant prompt including tool descriptions"""
+        system_prompt = get_conversation_assistant_agent_prompt()
+        if self.tools:
+            tool_lines = [f"- {tool.name}: {tool.description}" for tool in self.tools]
+            tools_desc = "\n\nYou have access to the following tools:\n" + "\n".join(tool_lines)
+            tools_desc += "\n\nUse tools by indicating \"[Tool Used] tool_name(args)\" in your response."
+        else:
+            tools_desc = ""
 
-    def chat(self, prompt: str) -> str:
-        """Process a chat message through the agent graph"""
-        try:
-            if not prompt.strip():
-                return "Please provide a valid input"
-
-            if self.agent_executor is None:
-                return "Agent executor not initialized"
-
-            input_state = {
-                "input": prompt,
-                "chat_history": self.chat_history,
-                "current_agent": None,
-                "output": None,
-                "artifacts": {},
-            }
-
-            try:
-                response = self.agent_executor.invoke(input_state)
-
-                if isinstance(response, dict):
-                    output = response.get("output", "")
-
-                    if "chat_history" in response:
-                        self.chat_history = response["chat_history"]
-
-                    artifacts = response.get("artifacts", {})
-                    if "image" in artifacts:
-                        image_path = artifacts["image"]
-                        if "![Generated Image]" not in output:
-                            output += f"\n\n![Generated Image]({image_path})"
-
-                    return output
-                else:
-                    raise ValueError(f"Invalid response format from agent: {type(response)}")
-
-            except Exception as e:
-                logger.error(f"Graph execution error: {str(e)}")
-                raise
-
-        except Exception as e:
-            logger.error(f"Chat error: {str(e)}")
-            return f"Error: {str(e)}"
+        return f"{system_prompt}{tools_desc}"

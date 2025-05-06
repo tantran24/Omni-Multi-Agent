@@ -19,7 +19,6 @@ class ToolHandler:
             is_structured_tool = (
                 hasattr(tool, "_run_async") and tool._run_async is not None
             )
-
             # Format args appropriately if needed
             if isinstance(args, str) and hasattr(tool, "args_schema"):
                 if hasattr(tool.args_schema, "__annotations__"):
@@ -32,6 +31,7 @@ class ToolHandler:
                     args = {key.strip(): value.strip().strip("'\"")}
                 else:
                     args = {"input": args}
+
 
             # Handle async tools
             if hasattr(tool, "ainvoke"):

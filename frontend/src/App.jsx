@@ -3,10 +3,11 @@ import ChatBox from "./components/chat/ChatBox";
 import MessageInput from "./components/chat/MessageInput";
 import { chatWithLLM } from "./services/api";
 import { Button } from "./components/ui/Button";
-import { Moon, Sun, RotateCcw, Menu } from "lucide-react";
+import { Moon, Sun, RotateCcw, Menu, BotMessageSquare } from "lucide-react";
 import "./App.css";
 import McpManager from "./components/mcp/McpManager"; // import MCP Manager
-
+import Conversation from "./components/conversation/conversation";
+import NewWindow from "react-new-window";
 const App = () => {
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem("chatHistory");
@@ -125,7 +126,15 @@ const App = () => {
   const handleStarterPrompt = (promptText) => {
     handleSendMessage(promptText);
   };
+  const [isWindowOpen, setIsWindowOpen] = useState(false);
 
+  const handleOpenConversation = () => {
+    setIsWindowOpen(true);
+  };
+
+  const handleCloseWindow = () => {
+    setIsWindowOpen(false);
+  };
   return (
     <div className="flex flex-col min-h-screen bg-[var(--background)] text-[var(--foreground)] transition-colors duration-200">
       <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--background)] backdrop-blur-sm">
@@ -160,14 +169,30 @@ const App = () => {
             >
               {darkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-
+            <Button
+              onClick={handleOpenConversation}
+              className="hidden md:flex items-center gap-2 bg-[var(--accent)] hover:bg-[var(--accent)]/80 text-[var(--accent-foreground)]"
+              variant="outline"
+              disabled={isWindowOpen}
+            >
+              <BotMessageSquare size={16} />
+              <span>Conversation</span>
+            </Button>
+            {isWindowOpen && (
+              <NewWindow
+                onUnload={handleCloseWindow}
+                title="Conversation Window"
+              >
+                <Conversation handleCloseWindow={handleCloseWindow} />
+              </NewWindow>
+            )}
             <Button
               onClick={() => {
                 console.log("MCP Tools button clicked");
                 setShowMcpManager(true);
               }}
-              variant="primary"
-              className="flex items-center gap-2"
+              variant="outline"
+              className="flex items-center gap-2 bg-[var(--accent)] hover:bg-[var(--accent)]/80 text-[var(--accent-foreground)]"
             >
               MCP Tools
             </Button>
@@ -224,6 +249,8 @@ const App = () => {
         isTyping={isTyping}
         darkMode={darkMode}
       />
+
+
     </div>
   );
 };

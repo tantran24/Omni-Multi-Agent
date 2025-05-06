@@ -18,7 +18,6 @@ class BaseAgent:
         self.tools: List[Any] = []
         self.agent_type = "base"
         self.agent_name = "Base Agent"
-        self.tool_handler = ToolHandler()
 
     def get_system_prompt(self) -> str:
         """Get the system prompt for this agent"""

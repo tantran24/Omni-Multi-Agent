@@ -1,13 +1,15 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, WebSocket
 from pydantic import BaseModel, Field
 import asyncio
 from services.llm_service import LLMService
+from services.conversation_service import ConversationService
 import re
 from typing import Optional, Dict, Any
 import logging
 from fastapi.responses import JSONResponse, Response
 import shutil
 import os
+import torch
 from services.mcp_service import detach_mcp_service
 
 from stt.decode import run
@@ -16,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 llm_service = LLMService()
-
+conversation_service = ConversationService()
 
 class ChatMessage(BaseModel):
     message: str
@@ -71,7 +73,7 @@ async def transcribe(audio: UploadFile = File(...)):
         shutil.copyfileobj(audio.file, buffer)
 
     try:
-        result = run(long_form_audio=temp_file_path)
+        result = conversation_service.stt(audio_path=temp_file_path)
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
     finally:
@@ -153,3 +155,20 @@ async def get_mcp_status():
 
     status = await check_mcp_status()
     return status
+
+@router.websocket("/ws/conversation")
+async def websocket_conversation(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data: bytes = await websocket.receive_bytes()
+        if len(data) > 0:
+            audio_tensor = torch.frombuffer(data, dtype=torch.float32).unsqueeze(0)
+            audio_tensor = audio_tensor * 32767
+
+            text_transcribe = await asyncio.to_thread(conversation_service.stt, data=audio_tensor, audio_path=" ")
+            text_response = await conversation_service.process_message(text_transcribe)
+            audio_response = conversation_service.tts(text_response)
+            audio_bytes_to_send: bytes = audio_response.getvalue()
+            await websocket.send_bytes(audio_bytes_to_send)
+
+

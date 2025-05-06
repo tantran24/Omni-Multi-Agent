@@ -11,11 +11,14 @@ class Config:
     CORS_ORIGINS: List[str] = ["http://localhost:5173"]
 
     LLM_PROVIDER = "google_ai_studio"
-
+    TTS_PROVIDER = "eleven_lab"
     # Google AI Studio
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-    GOOGLE_MODEL = os.getenv("GOOGLE_MODEL", "gemini-pro")
-
+    GOOGLE_MODEL = os.getenv("GOOGLE_MODEL", "gemini-2.0-flash-thinking-exp-01-21")
+    # Eleven Lab
+    ELEVENLAB_API_KEY = os.getenv("ELEVENLAB_API_KEY")
+    ELEVENLAB_MODEL = os.getenv("ELEVENLAB_MODEL", "eleven_flash_v2_5")
+    ELEVENLAB_VOICE_ID = os.getenv("ELEVENLAB_VOICE_ID", "ueSxRO0nLF1bj93J2hVt")
     # Ollama
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_API_URL: str = f"{OLLAMA_BASE_URL}/api"
