@@ -115,7 +115,7 @@ const Conversation = ({ handleCloseWindow }) => {
                         }
                         `}
                     onClick={toggleMic}
-                    disabled={!isConnected} // Sử dụng biến isConnected đã định nghĩa
+                    disabled={!isConnected || isPausedForPlaybackUI}
                     aria-label={onMic ? "Tắt tiếng micro" : "Bật tiếng micro"}
                 >
                     {onMic ? <Mic size={iconSize} /> : <MicOff size={iconSize} />}
