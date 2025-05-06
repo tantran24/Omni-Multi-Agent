@@ -15,6 +15,7 @@ class Config:
     # Google AI Studio
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
     GOOGLE_MODEL = os.getenv("GOOGLE_MODEL", "gemini-2.0-flash-thinking-exp-01-21")
+    GOOGLE_IMAGE_GENERATOR_MODEL = os.getenv("GOOGLE_IMAGE_GENERATOR_MODEL", "gemini-2.0-flash-exp-image-generation")
     # Eleven Lab
     ELEVENLAB_API_KEY = os.getenv("ELEVENLAB_API_KEY")
     ELEVENLAB_MODEL = os.getenv("ELEVENLAB_MODEL", "eleven_flash_v2_5")

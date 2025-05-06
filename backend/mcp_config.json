@@ -10,5 +10,19 @@
       "83ba8c64-cf9d-4033-ab36-91366e89f9c8"
     ],
     "transport": "stdio"
+  },
+  "duckduckgo-mcp-server": {
+    "command": "cmd",
+    "args": [
+      "/c",
+      "npx",
+      "-y",
+      "@smithery/cli@latest",
+      "run",
+      "@nickclyde/duckduckgo-mcp-server",
+      "--key",
+      "f8cefc5c-5aea-4dba-b091-e3e4fefe1349"
+    ],
+    "transport": "stdio"
   }
 }
