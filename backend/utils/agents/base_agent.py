@@ -25,7 +25,7 @@ class BaseAgent:
 
     async def initialize_tools(self) -> None:
         """Initialize tools asynchronously"""
-        agent_tools = get_tools_for_agent(self.agent_type)
+        agent_tools = await get_tools_for_agent(self.agent_type)
         mcp_tools = await ToolHandler.initialize_tools()
         self.tools = agent_tools + mcp_tools
 

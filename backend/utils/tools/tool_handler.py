@@ -32,7 +32,6 @@ class ToolHandler:
                 else:
                     args = {"input": args}
 
-
             # Handle async tools
             if hasattr(tool, "ainvoke"):
                 return await tool.ainvoke(args)
@@ -128,7 +127,7 @@ class ToolHandler:
         try:
             if not detach_mcp_service.initialized:
                 await detach_mcp_service.initialize_client()
-            return detach_mcp_service.get_tools()
+            return await detach_mcp_service.get_tools()
         except Exception as e:
             logger.error(f"Error initializing tools: {e}")
             return []
