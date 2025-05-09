@@ -15,11 +15,13 @@ class Config:
     # Google AI Studio
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
     GOOGLE_MODEL = os.getenv("GOOGLE_MODEL", "gemini-2.0-flash-thinking-exp-01-21")
-    GOOGLE_IMAGE_GENERATOR_MODEL = os.getenv("GOOGLE_IMAGE_GENERATOR_MODEL", "gemini-2.0-flash-exp-image-generation")
+    GOOGLE_IMAGE_GENERATOR_MODEL = os.getenv(
+        "GOOGLE_IMAGE_GENERATOR_MODEL", "gemini-2.0-flash-exp-image-generation"
+    )
     # Eleven Lab
-    ELEVENLAB_API_KEY = os.getenv("ELEVENLAB_API_KEY")
-    ELEVENLAB_MODEL = os.getenv("ELEVENLAB_MODEL", "eleven_flash_v2_5")
-    ELEVENLAB_VOICE_ID = os.getenv("ELEVENLAB_VOICE_ID", "ueSxRO0nLF1bj93J2hVt")
+    ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+    ELEVENLABS_MODEL = os.getenv("ELEVENLABS_MODEL", "eleven_flash_v2_5")
+    ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "foH7s9fX31wFFH2yqrFa")
     # Ollama
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_API_URL: str = f"{OLLAMA_BASE_URL}/api"

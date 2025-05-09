@@ -1,4 +1,11 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, WebSocket
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    BackgroundTasks,
+    UploadFile,
+    File,
+    WebSocket,
+)
 from pydantic import BaseModel, Field
 import asyncio
 from services.llm_service import LLMService
@@ -19,6 +26,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 llm_service = LLMService()
 conversation_service = ConversationService()
+
 
 class ChatMessage(BaseModel):
     message: str
@@ -96,7 +104,7 @@ async def list_mcp_tools():
     logger.info(f"Listing MCP tools with configs: {detach_mcp_service.list_configs()}")
 
     await detach_mcp_service.initialize_client()
-    tools = detach_mcp_service.get_tools()
+    tools = await detach_mcp_service.get_tools()
 
     # If tools exist, return their actual metadata
     if tools:
@@ -122,7 +130,7 @@ async def add_mcp_config(config_body: dict):
                 status_code=400, detail="Invalid MCP configuration payload"
             )
         for name, conf in mapping.items():
-            detach_mcp_service.add_config(name, conf)
+            await detach_mcp_service.add_config(name, conf)
         # Reset LLM service to rebuild graph with new MCP tools
         llm_service.initialized = False
         llm_service.chat_agent = None
@@ -140,7 +148,7 @@ async def add_mcp_config(config_body: dict):
 async def delete_mcp_config(name: str):
     """Delete an existing MCP configuration"""
     try:
-        detach_mcp_service.delete_config(name)
+        await detach_mcp_service.delete_config(name)
         llm_service.initialized = False
         llm_service.chat_agent = None
         return Response(status_code=204)
@@ -156,6 +164,7 @@ async def get_mcp_status():
     status = await check_mcp_status()
     return status
 
+
 @router.websocket("/ws/conversation")
 async def websocket_conversation(websocket: WebSocket):
     await websocket.accept()
@@ -165,10 +174,10 @@ async def websocket_conversation(websocket: WebSocket):
             audio_tensor = torch.frombuffer(data, dtype=torch.float32).unsqueeze(0)
             audio_tensor = audio_tensor * 32767
 
-            text_transcribe = await asyncio.to_thread(conversation_service.stt, data=audio_tensor, audio_path=" ")
+            text_transcribe = await asyncio.to_thread(
+                conversation_service.stt, data=audio_tensor, audio_path=" "
+            )
             text_response = await conversation_service.process_message(text_transcribe)
             audio_response = conversation_service.tts(text_response)
             audio_bytes_to_send: bytes = audio_response.getvalue()
             await websocket.send_bytes(audio_bytes_to_send)
-
-

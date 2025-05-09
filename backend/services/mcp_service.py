@@ -3,6 +3,7 @@ import os
 from typing import Dict, Any
 from langchain_mcp_adapters.client import MultiServerMCPClient
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +17,9 @@ class MCPService:
 
     def __init__(self):
         self.configs: Dict[str, Any] = self._load_configs()
-        self.client: MultiServerMCPClient = None  # type: ignore
+        self.client: MultiServerMCPClient = None
         self.initialized = False
+        self._lock = asyncio.Lock()
         self._create_client()
 
     def _load_configs(self) -> Dict[str, Any]:
@@ -53,94 +55,101 @@ class MCPService:
 
     def _create_client(self) -> None:
         """Create a new MCP client with current configs"""
-        logger.info(f"Creating MCP client with configs: {self.configs}")
+        logger.info(f"Creating MCP client object with configs: {self.configs}")
         self.client = MultiServerMCPClient(self.configs)
         self.initialized = False
 
     async def initialize_client(self) -> bool:
-        """Initialize the MCP client asynchronously"""
-        if self.initialized:
-            return True
-
-        try:
-            if self.client:
+        async with self._lock:
+            if self.initialized:
+                return True
+            if not self.client:
+                logger.error("MCP Client object not created before initialization.")
+                return False
+            try:
+                logger.info("Entering MCP client context (__aenter__)...")
                 await self.client.__aenter__()
                 tools = self.client.get_tools()
-                logger.info(
-                    f"MCP client loaded {len(tools)} tools: {[t.name for t in tools]}"
-                )
+                logger.info(f"MCP client __aenter__ successful, tools available.")
                 self.initialized = True
+                logger.info("MCP client initialized successfully.")
                 return True
-        except Exception as e:
-            logger.error(f"Error initializing MCP client: {e}")
-            return False
-        return False
+            except Exception as e:
+                logger.error(f"Error during MCP client __aenter__: {e}", exc_info=True)
+                self.initialized = False
+                return False
+
+    async def aclose(self):
+        """Gracefully close the MCP client."""
+        async with self._lock:
+            if self.client and self.initialized:
+                logger.info("Exiting MCP client context (__aexit__)...")
+                try:
+                    await self.client.__aexit__(None, None, None)
+                    logger.info("MCP client exited successfully.")
+                except Exception as e:
+                    logger.error(
+                        f"Error during MCP client __aexit__: {e}", exc_info=True
+                    )
+                finally:
+                    self.initialized = False
+            elif self.client and not self.initialized:
+                logger.info(
+                    "MCP client was created but not initialized, no __aexit__ needed."
+                )
+            else:
+                logger.info("No MCP client to close.")
 
     def list_configs(self) -> Dict[str, Any]:
         return self.configs
 
-    def add_config(self, name: str, config: Dict[str, Any]) -> None:
+    async def add_config(self, name: str, config: Dict[str, Any]) -> None:
         if "transport" not in config:
             config["transport"] = "sse" if "url" in config else "stdio"
         self.configs[name] = config
         self._save_configs()
-        self._refresh_client()
+        await self._refresh_client()
 
-    def delete_config(self, name: str) -> None:
+    async def delete_config(self, name: str) -> None:
         if name in self.configs:
             del self.configs[name]
             self._save_configs()
-            self._refresh_client()
+            await self._refresh_client()
 
-    def get_tools(self) -> Any:
-        """Return list of langchain Tool instances for each MCP config"""
-        try:
-            if not self.initialized:
-                import asyncio
+    async def get_tools(self) -> Any:
+        if not self.initialized:
+            logger.info(
+                "MCP client not initialized. Attempting to initialize in get_tools..."
+            )
+            await self.initialize_client()
 
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    asyncio.create_task(self.initialize_client())
-                else:
-                    loop.run_until_complete(self.initialize_client())
-
-            if not self.initialized:
-                logger.warning("MCP client not initialized when requesting tools")
-
-            return self.client.get_tools() if self.client else []
-        except Exception as e:
-            logger.error(f"Error retrieving tools from MCP client: {e}")
+        if not self.initialized:
+            logger.warning("MCP client failed to initialize when requesting tools.")
             return []
 
-    def _refresh_client(self) -> None:
-        """Refresh the MCP client with updated configurations"""
         try:
-            if self.client and self.initialized:
-                import asyncio
-
-                loop = asyncio.get_event_loop()
-                try:
-                    if loop.is_running():
-                        asyncio.create_task(self.client.__aexit__(None, None, None))
-                    else:
-                        loop.run_until_complete(self.client.__aexit__(None, None, None))
-                except Exception as e:
-                    logger.warning(f"Error closing MCP client: {e}")
-
-            self._create_client()
-
-            import asyncio
-
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(self.initialize_client())
-            else:
-                try:
-                    loop.run_until_complete(self.initialize_client())
-                except Exception as e:
-                    logger.error(f"Error initializing new MCP client: {e}")
+            return self.client.get_tools() if self.client else []
         except Exception as e:
-            logger.error(f"Error refreshing MCP client: {e}")
+            logger.error(f"Error retrieving tools from MCP client: {e}", exc_info=True)
+            return []
+
+    async def _refresh_client(self) -> None:
+        logger.info("Refreshing MCP client...")
+
+        # First, ensure any existing client session is properly closed.
+        # aclose() handles its own locking and sets self.initialized = False.
+        logger.info("Attempting to close existing MCP client session (if active)...")
+        await self.aclose()
+
+        # Create a new client instance with the potentially updated configurations.
+        # This is a synchronous operation.
+        self._create_client()
+
+        # Initialize the newly created client.
+        # initialize_client() handles its own locking for the __aenter__ call.
+        logger.info("Attempting to initialize new MCP client after refresh...")
+        await self.initialize_client()
+        logger.info("MCP client refresh process completed.")
 
 
 detach_mcp_service = MCPService()
