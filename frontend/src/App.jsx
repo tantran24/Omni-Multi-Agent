@@ -5,7 +5,7 @@ import { chatWithLLM } from "./services/api";
 import { Button } from "./components/ui/Button";
 import { Moon, Sun, RotateCcw, Menu, BotMessageSquare } from "lucide-react";
 import "./App.css";
-import McpManager from "./components/mcp/McpManager"; // import MCP Manager
+import McpManager from "./components/mcp/McpManager";
 import Conversation from "./components/conversation/conversation";
 import NewWindow from "react-new-window";
 const App = () => {
@@ -23,7 +23,7 @@ const App = () => {
     );
   });
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showMcpManager, setShowMcpManager] = useState(false); // MCP manager visibility
+  const [showMcpManager, setShowMcpManager] = useState(false);
 
   useEffect(() => {
     if (darkMode) {
@@ -72,6 +72,7 @@ const App = () => {
           timestamp: new Date().toISOString(),
         };
 
+        // Check for image in the direct response.image field
         if (response.image) {
           try {
             const serverUrl =
@@ -81,9 +82,30 @@ const App = () => {
               : `${serverUrl}/${response.image}`;
 
             botMessage.image = imageUrl;
-            console.log("Image URL:", botMessage.image);
+            console.log("Image URL from response:", botMessage.image);
           } catch (err) {
-            console.error("Error forming image URL:", err);
+            console.error("Error forming image URL from response:", err);
+          }
+        } else if (
+          response.artifacts &&
+          response.artifacts.generate_image &&
+          response.artifacts.generate_image.image_url
+        ) {
+          try {
+            const serverUrl =
+              import.meta.env.VITE_API_URL || "http://localhost:8000";
+            const imageUrl =
+              response.artifacts.generate_image.image_url.startsWith("/")
+                ? `${serverUrl}${response.artifacts.generate_image.image_url}`
+                : `${serverUrl}/${response.artifacts.generate_image.image_url}`;
+
+            botMessage.image = imageUrl;
+            console.log(
+              "Image URL from artifacts.generate_image:",
+              botMessage.image
+            );
+          } catch (err) {
+            console.error("Error forming image URL from artifacts:", err);
           }
         }
 
@@ -249,8 +271,6 @@ const App = () => {
         isTyping={isTyping}
         darkMode={darkMode}
       />
-
-
     </div>
   );
 };

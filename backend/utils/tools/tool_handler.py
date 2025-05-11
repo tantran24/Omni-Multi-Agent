@@ -97,7 +97,8 @@ class ToolHandler:
                 # Invoke tool
                 result = await ToolHandler.ainvoke_tool(tool, args)
                 artifacts[tool_name] = result
-                return str(result)
+
+                return f"[Tool Result: {tool_name}]"
             except Exception as e:
                 logger.error(f"Error processing tool call: {e}")
                 return f"Error: {str(e)}"

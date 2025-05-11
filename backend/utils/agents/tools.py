@@ -20,7 +20,12 @@ def generate_image(prompt: str) -> str:
     try:
         result = image_agent.generate_image(prompt)
         image_path = f"/generated_images/{result['filename']}"
-        return image_path
+
+        return f"""I've created an image based on your description: "{prompt}".
+
+![Generated Image]({image_path})
+
+The image has been generated successfully and should be displayed above."""
     except Exception as e:
         raise Exception(f"Image generation failed: {str(e)}")
 
@@ -36,8 +41,8 @@ def get_time(input: Optional[str] = "") -> str:
     try:
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if input and input.strip():
-            return f"Current time: {current_time} (Note: Custom timezone/format '{input}' not implemented yet)"
-        return f"Current time: {current_time}"
+            return f"The current time is {current_time}. You mentioned '{input}' which appears to be a timezone or format preference, but those options aren't fully implemented yet. Please use this information to provide a helpful response to the user."
+        return f"The current time is {current_time}. You can use this information to provide a helpful response to the user about the current date and time."
     except Exception as e:
         raise Exception(f"Error getting time: {str(e)}")
 

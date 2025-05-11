@@ -145,9 +145,9 @@ class ImageGeneratorWrapper:
                 print(part.text)
             elif part.inline_data is not None:
                 image = Image.open(BytesIO(part.inline_data.data))
-                # Optional: save the image
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                image.save(f"generated_google_image_{timestamp}.png")
+                # The ImageAgent is responsible for saving the image.
+                # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                # image.save(f"generated_google_image_{timestamp}.png")
                 return image
 
         raise RuntimeError("No image found in Gemini response.")

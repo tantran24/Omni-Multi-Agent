@@ -48,6 +48,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+os.makedirs("generated_images", exist_ok=True)
+
+app.mount(
+    "/generated_images",
+    StaticFiles(directory="generated_images"),
+    name="generated_images",
+)
+app.mount(
+    "/stt",
+    StaticFiles(directory="stt"),
+    name="stt",
+)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

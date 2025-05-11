@@ -87,6 +87,31 @@ const MessageBubble = ({
     }
   };
 
+  const markdownComponents = {
+    img: ({ node, src, alt, ...props }) => {
+      return (
+        <div className="mt-2">
+          <img
+            src={src}
+            alt={alt || "Generated content"}
+            className="chat-image rounded-md max-w-full cursor-pointer hover:opacity-95 transition-opacity hover:scale-[1.02]"
+            onClick={() => handleImageClick(src)}
+            onError={(e) => {
+              console.error("Image failed to load:", src);
+              e.target.onerror = null;
+              e.target.src = "/images/fallback-image.png";
+              const errorMsg = document.createElement("div");
+              errorMsg.className = "text-xs text-red-500 mt-1";
+              errorMsg.innerText = "Image failed to load. Path: " + src;
+              e.target.parentNode.appendChild(errorMsg);
+            }}
+            {...props}
+          />
+        </div>
+      );
+    },
+  };
+
   return (
     <div
       className={`flex flex-col w-full ${isUser ? "items-end" : "items-start"}`}
@@ -131,11 +156,15 @@ const MessageBubble = ({
         {" "}
         <div className="p-3.5 overflow-hidden break-words whitespace-pre-wrap text-sm">
           {isUser || typewriterComplete ? (
-            formatModelOutput ? (
-              formatModelOutput(text)
-            ) : (
-              text
-            )
+            <div className="markdown-message">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeHighlight]}
+                components={markdownComponents}
+              >
+                {formatModelOutput ? formatModelOutput(text) : text}
+              </ReactMarkdown>
+            </div>
           ) : (
             <TypewriterEffect
               text={text}
@@ -144,7 +173,7 @@ const MessageBubble = ({
             />
           )}
 
-          {image && (
+          {image && !text.includes(image) && (
             <div className="mt-2">
               <img
                 src={image}
@@ -153,7 +182,12 @@ const MessageBubble = ({
                 onClick={() => handleImageClick(image)}
                 onError={(e) => {
                   console.error("Image failed to load:", image);
-                  e.target.src = "/path/to/fallback-image.png";
+                  e.target.onerror = null;
+                  e.target.src = "/images/fallback-image.png";
+                  const errorMsg = document.createElement("div");
+                  errorMsg.className = "text-xs text-red-500 mt-1";
+                  errorMsg.innerText = "Image failed to load. Path: " + image;
+                  e.target.parentNode.appendChild(errorMsg);
                 }}
               />
             </div>

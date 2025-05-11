@@ -47,7 +47,8 @@ class ImageAgent:
         logger.info(f"Image saved to {filepath}")
         self._clear_memory()
 
-        return {"filename": filename, "filepath": filepath}
+        image_url = f"/generated_images/{filename}"
+        return {"filename": filename, "filepath": filepath, "image_url": image_url}
 
     def __del__(self):
         self._clear_memory()
@@ -62,9 +63,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
