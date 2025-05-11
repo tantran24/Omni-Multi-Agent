@@ -110,6 +110,45 @@ const MessageBubble = ({
         </div>
       );
     },
+    // Enhance list rendering
+    ul: ({ node, ...props }) => (
+      <ul className="list-disc pl-6 my-1" {...props} />
+    ),
+    ol: ({ node, ...props }) => (
+      <ol className="list-decimal pl-6 my-1" {...props} />
+    ),
+    li: ({ node, ...props }) => <li className="my-0.5" {...props} />,
+    // Enhance other markdown elements
+    p: ({ node, ...props }) => <p className="my-1" {...props} />,
+    h1: ({ node, ...props }) => (
+      <h1 className="text-xl font-bold my-2" {...props} />
+    ),
+    h2: ({ node, ...props }) => (
+      <h2 className="text-lg font-bold my-2" {...props} />
+    ),
+    h3: ({ node, ...props }) => (
+      <h3 className="text-md font-bold my-1.5" {...props} />
+    ),
+    a: ({ node, ...props }) => (
+      <a
+        className="text-blue-600 hover:underline"
+        target="_blank"
+        rel="noopener noreferrer"
+        {...props}
+      />
+    ),
+    code: ({ node, inline, ...props }) =>
+      inline ? (
+        <code
+          className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded font-mono text-sm"
+          {...props}
+        />
+      ) : (
+        <pre
+          className="bg-gray-100 dark:bg-gray-800 p-2 rounded my-2 overflow-auto font-mono text-sm"
+          {...props}
+        />
+      ),
   };
 
   return (

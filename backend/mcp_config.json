@@ -1,1 +1,15 @@
-{}
+{
+  "tavily-mcp": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "tavily-mcp"
+    ],
+    "env": {
+      "TAVILY_API_KEY": "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"
+    },
+    "disabled": false,
+    "autoApprove": [],
+    "transport": "stdio"
+  }
+}
