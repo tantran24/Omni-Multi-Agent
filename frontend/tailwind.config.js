@@ -19,8 +19,8 @@ export default {
           950: "#082f49",
         },
         claude: {
-          purple: "#8E44AD",
-          lavender: "#9B59B6",
+          purple: "#18181b", // Dark for light mode
+          lavender: "#27272a", // Slightly lighter dark for light mode
           light: "#F5F7F9",
           dark: "#27272A",
           gray: "#71717A",

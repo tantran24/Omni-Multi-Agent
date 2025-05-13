@@ -1,0 +1,101 @@
+/* Markdown styling for the chat interface */
+
+.typing-cursor {
+  display: inline-block;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  from,
+  to {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.markdown-message .katex-display {
+  margin: 1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+}
+
+.markdown-message ul,
+.markdown-message ol {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+.markdown-message li {
+  margin-bottom: 0.25em;
+}
+
+.markdown-message li > p {
+  margin-bottom: 0.25em;
+}
+
+.markdown-message li:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-message p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-message pre {
+  margin: 0.75em 0;
+}
+
+.markdown-message code {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.9em;
+}
+
+.markdown-message p {
+  margin-bottom: 0.75em;
+  line-height: 1.6;
+}
+
+.markdown-message h1,
+.markdown-message h2,
+.markdown-message h3,
+.markdown-message h4,
+.markdown-message h5,
+.markdown-message h6 {
+  margin-top: 1.2em;
+  margin-bottom: 0.6em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Image styling */
+.chat-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Fix any potential issue with divs in paragraphs */
+.markdown-message p > div {
+  display: inline-block;
+}
+
+/* Fix for figure elements inside paragraph tags */
+.markdown-message p > figure {
+  display: block;
+  margin: 1rem 0;
+}
+
+/* Hide ONNX runtime warnings and elements */
+div[data-onnx-warning],
+.ort-warning,
+div[class*="ort-"],
+div[id*="ort-"],
+canvas[data-ort],
+span[data-onnx] {
+  display: none !important;
+}

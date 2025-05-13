@@ -187,11 +187,11 @@ const McpManager = ({ isOpen, onClose }) => {
                         onChange={(e) => setConfigJson(e.target.value)}
                         className="w-full h-40 p-2 rounded-lg border border-[var(--border)] bg-[var(--background)] font-mono text-sm"
                         required
-                      />
+                      />{" "}
                       <div className="flex justify-end">
                         <button
                           type="submit"
-                          className="px-4 py-2 bg-claude-purple text-white rounded-lg hover:bg-claude-purple/90 transition-colors"
+                          className="px-4 py-2 bg-[var(--foreground)] text-[var(--background)] rounded-lg hover:bg-[var(--foreground)]/90 transition-colors"
                         >
                           Add Configuration
                         </button>

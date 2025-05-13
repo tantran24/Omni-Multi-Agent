@@ -1,38 +1,52 @@
 /**
+ * Formats text output from the LLM for better display.
  *
  * @param {string} text - The text to format
  * @returns {string} Formatted text
  */
 export const formatModelOutput = (text) => {
-  if (!text) return "";
+  if (!text) return text;
 
-  // First handle math expressions
   let formatted = text;
-  formatted = formatted.replace(/\$\$(.*?)\$\$/g, "\n$$\n$1\n$$\n");
-  formatted = formatted.replace(/\$(.*?)\$/g, "$\n$1\n$");
 
-  // Ensure proper line breaks for paragraphs without disrupting lists
-  // Only add double spaces at the end of lines that aren't part of lists
-  formatted = formatted.replace(/([^\*\-\d])\n/g, "$1  \n");
+  // Remove excessive line breaks (more than 2 consecutive)
+  formatted = formatted.replace(/\n{3,}/g, "\n\n");
 
-  // Ensure lists have proper spacing
-  formatted = formatted.replace(/^(\s*[\*\-]\s)/gm, "$1");
+  // Fix common markdown formatting issues
+  formatted = formatted
+    // Fix spacing after list markers for proper markdown rendering
+    .replace(/^(\s*[-*+])\s*(?=\S)/gm, "$1 ")
+    // Fix numbered lists that might have no space after number
+    .replace(/^(\s*\d+\.)\s*(?=\S)/gm, "$1 ")
+    // Ensure proper code block formatting
+    .replace(/```([a-zA-Z0-9]*)\n/g, "```$1\n")
+    // Fix extra whitespace in tables
+    .replace(/\|\s+/g, "| ")
+    .replace(/\s+\|/g, " |")
+    // Remove any potential JSX-like attributes that might cause React errors
+    .replace(/<style jsx.*?>/g, "<style>")
+    .replace(/\s+jsx=["'].*?["']/g, "")
+    // Fix any potential HTML nesting issues for divs in paragraphs
+    .replace(/<div([^>]*)>(.*?)<\/div>/g, (match, attributes, content) => {
+      // Use span with block display instead of div to avoid nesting issues
+      if (content.trim().length > 0) {
+        return `<span${attributes} class="block">${content}</span>`;
+      }
+      return match;
+    })
+    // Also handle potential nesting issues with other block elements
+    .replace(
+      /<(figure|section|article|aside|nav|header|footer)([^>]*)>(.*?)<\/\1>/g,
+      (match, tag, attributes, content) => {
+        // For block elements that might be nested in paragraphs, use span with appropriate class
+        if (content.trim().length > 0) {
+          return `<span${attributes} class="block ${tag}-container">${content}</span>`;
+        }
+        return match;
+      }
+    );
 
-  // Ensure numbered lists work properly
-  formatted = formatted.replace(/^(\s*\d+\.\s)/gm, "$1");
-
-  // Remove excess line breaks around paragraphs and lists
-  formatted = formatted.replace(/\n\n\n+/g, "\n\n"); // Normalize multiple line breaks to just two
-  formatted = formatted.replace(/^\n+/, ""); // Remove leading line breaks
-  formatted = formatted.replace(/\n+$/, ""); // Remove trailing line breaks
-
-  // Fix excess spacing around lists
-  formatted = formatted.replace(/\n\n([\*\-]\s)/g, "\n$1"); // Remove extra line before bullet lists
-  formatted = formatted.replace(/\n\n(\d+\.\s)/g, "\n$1"); // Remove extra line before numbered lists
-  formatted = formatted.replace(/([\*\-]\s.*)\n\n(?![\*\-])/g, "$1\n"); // Remove extra line after bullet lists
-  formatted = formatted.replace(/(\d+\.\s.*)\n\n(?!\d+\.)/g, "$1\n"); // Remove extra line after numbered lists
-
-  return formatted.trim();
+  return formatted;
 };
 
 export default formatModelOutput;

@@ -3,9 +3,8 @@ import PropTypes from "prop-types";
 
 const EmptyState = ({ onPromptClick }) => (
   <div className="flex flex-col items-center justify-center h-full text-center p-8">
-    {" "}
-    <div className="w-16 h-16 rounded-full bg-gradient-to-r from-claude-purple to-claude-lavender flex items-center justify-center mb-6">
-      <span className="font-semibold text-xl transition-colors duration-200 text-[var(--foreground)]">
+    <div className="w-16 h-16 rounded-full bg-[var(--foreground)] flex items-center justify-center mb-6">
+      <span className="font-semibold text-xl transition-colors duration-200 text-[var(--background)]">
         O
       </span>
     </div>

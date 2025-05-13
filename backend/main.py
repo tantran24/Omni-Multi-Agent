@@ -48,12 +48,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Ensure necessary directories exist
 os.makedirs("generated_images", exist_ok=True)
+os.makedirs("uploaded_files", exist_ok=True)
+os.makedirs("stt", exist_ok=True)
+os.makedirs("audioUpload", exist_ok=True)
 
+# Mount static directories
 app.mount(
     "/generated_images",
     StaticFiles(directory="generated_images"),
     name="generated_images",
+)
+app.mount(
+    "/uploaded_files",
+    StaticFiles(directory="uploaded_files"),
+    name="uploaded_files",
 )
 app.mount(
     "/stt",
@@ -73,15 +83,3 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host=Config.HOST, port=Config.PORT)
-
-os.makedirs("generated_images", exist_ok=True)
-app.mount(
-    "/generated_images",
-    StaticFiles(directory="generated_images"),
-    name="generated_images",
-)
-app.mount(
-    "/stt",
-    StaticFiles(directory="stt"),
-    name="stt",
-)

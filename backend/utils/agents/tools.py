@@ -23,9 +23,7 @@ def generate_image(prompt: str) -> str:
 
         return f"""I've created an image based on your description: "{prompt}".
 
-![Generated Image]({image_path})
-
-The image has been generated successfully and should be displayed above."""
+![Generated Image]({image_path})"""
     except Exception as e:
         raise Exception(f"Image generation failed: {str(e)}")
 

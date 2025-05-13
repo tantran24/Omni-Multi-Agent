@@ -36,19 +36,25 @@ const MessageInput = ({ onSendMessage, onAttachFile, isTyping, darkMode }) => {
       textareaRef.current.focus();
     }
   }, []);
-
   // Handle clipboard paste events for images
   useEffect(() => {
     const handlePaste = (e) => {
       if (e.clipboardData && e.clipboardData.items) {
         const items = e.clipboardData.items;
         for (let i = 0; i < items.length; i++) {
-          if (items[i].type.indexOf("image") !== -1) {
+          if (
+            items[i].type.indexOf("image") !== -1 ||
+            items[i].type === "application/pdf"
+          ) {
             const blob = items[i].getAsFile();
-            const imageUrl = URL.createObjectURL(blob);
+            const preview =
+              items[i].type.indexOf("image") !== -1
+                ? URL.createObjectURL(blob)
+                : null;
+
             setPastedImage({
               file: blob,
-              preview: imageUrl,
+              preview: preview,
             });
             e.preventDefault();
             break;
@@ -62,11 +68,14 @@ const MessageInput = ({ onSendMessage, onAttachFile, isTyping, darkMode }) => {
       window.removeEventListener("paste", handlePaste);
     };
   }, []);
-
   // Dropzone configuration for file attachments
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
       onAttachFile(acceptedFiles);
+    },
+    accept: {
+      "image/*": [],
+      "application/pdf": [".pdf"],
     },
     noClick: true, // Prevent click from opening file dialog
   });
@@ -99,7 +108,7 @@ const MessageInput = ({ onSendMessage, onAttachFile, isTyping, darkMode }) => {
   return (
     <div className="sticky bottom-0 bg-[var(--background)] border-t border-[var(--border)]">
       <div className="container mx-auto px-4 py-3 max-w-3xl">
-        {/* Voice recorder overlay */}
+        {/* Voice recorder overlay */}{" "}
         {showVoiceRecorder && (
           <VoiceRecorder
             onResult={handleSaveRecording}
@@ -111,11 +120,35 @@ const MessageInput = ({ onSendMessage, onAttachFile, isTyping, darkMode }) => {
         {pastedImage && (
           <div className="mb-2 relative">
             <div className="inline-block relative">
-              <img
-                src={pastedImage.preview}
-                alt="Pasted content"
-                className="max-h-40 rounded-lg border border-[var(--border)]"
-              />
+              {pastedImage.file.type.includes("pdf") ? (
+                <div className="flex items-center gap-2 p-3 border border-[var(--border)] rounded-lg bg-[var(--accent)]/30 max-w-xs">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <path d="M9 15v-2h6v2"></path>
+                    <path d="M12 13v5"></path>
+                  </svg>
+                  <span className="text-sm truncate max-w-[200px]">
+                    {pastedImage.file.name || "PDF Document"}
+                  </span>
+                </div>
+              ) : (
+                <img
+                  src={pastedImage.preview}
+                  alt="Pasted content"
+                  className="max-h-40 rounded-lg border border-[var(--border)]"
+                />
+              )}
               <button
                 className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1"
                 onClick={handleRemovePastedImage}
@@ -138,14 +171,14 @@ const MessageInput = ({ onSendMessage, onAttachFile, isTyping, darkMode }) => {
             </div>
           </div>
         )}
-
         {/* Drag and drop area */}
         <div
           {...getRootProps()}
-          className={`relative rounded-lg transition-all duration-200 ${isDragActive
-            ? "border-2 border-dashed border-primary-400 bg-primary-50 dark:bg-primary-950/30"
-            : ""
-            }`}
+          className={`relative rounded-lg transition-all duration-200 ${
+            isDragActive
+              ? "border-2 border-dashed border-primary-400 bg-primary-50 dark:bg-primary-950/30"
+              : ""
+          }`}
         >
           {isDragActive && (
             <div className="absolute inset-0 flex items-center justify-center bg-[var(--accent)]/50 backdrop-blur-sm rounded-lg z-10">
@@ -169,10 +202,8 @@ const MessageInput = ({ onSendMessage, onAttachFile, isTyping, darkMode }) => {
                 rows={1}
                 disabled={isTyping}
               />
-            </div>
-
+            </div>{" "}
             <div className="flex items-center">
-              {" "}
               {/* Voice button */}
               <button
                 type="button"
@@ -202,7 +233,7 @@ const MessageInput = ({ onSendMessage, onAttachFile, isTyping, darkMode }) => {
                 type="button"
                 onClick={handleSendMessage}
                 disabled={(!message.trim() && !pastedImage) || isTyping}
-                className="p-2 rounded-md transition-all duration-200 bg-claude-purple text-white hover:bg-claude-purple/90 disabled:opacity-50 disabled:bg-[var(--muted)] disabled:text-[var(--muted-foreground)] hover:scale-105 active:scale-95"
+                className="p-2 rounded-md transition-all duration-200 bg-[var(--foreground)] text-[var(--background)] hover:bg-[var(--foreground)]/90 disabled:opacity-50 disabled:bg-[var(--muted)] disabled:text-[var(--muted-foreground)] hover:scale-105 active:scale-95"
                 aria-label="Send message"
               >
                 {isTyping ? (
@@ -210,17 +241,16 @@ const MessageInput = ({ onSendMessage, onAttachFile, isTyping, darkMode }) => {
                 ) : (
                   <Send size={20} />
                 )}
-              </button>
+              </button>{" "}
             </div>
           </div>
         </div>
-
         {/* Hidden file input for attachments */}
         <input
           id="file-upload"
           type="file"
           multiple
-          accept="image/*"
+          accept="image/*,application/pdf,.pdf"
           className="hidden"
           onChange={(e) => {
             if (e.target.files && e.target.files.length > 0) {

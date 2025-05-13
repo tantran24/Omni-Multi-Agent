@@ -1,6 +1,6 @@
 import axios from "axios";
-import { useState, useEffect, useCallback } from 'react';
-import useWebSocket, { ReadyState } from 'react-use-websocket';
+import { useState, useEffect, useCallback } from "react";
+import useWebSocket, { ReadyState } from "react-use-websocket";
 
 const API_URL = "http://localhost:8000/api";
 
@@ -41,8 +41,8 @@ export const chatWithLLM = async (message, formData) => {
     console.error("API Error:", error);
     throw new Error(
       error.response?.data?.detail ||
-      error.message ||
-      "An unexpected error occurred"
+        error.message ||
+        "An unexpected error occurred"
     );
   }
 };
@@ -73,8 +73,8 @@ export const uploadVoiceRecording = async (audioChunks) => {
   } catch (error) {
     throw new Error(
       error.response?.data?.detail ||
-      error.message ||
-      "Failed to transcribe audio"
+        error.message ||
+        "Failed to transcribe audio"
     );
   }
 };
@@ -100,17 +100,19 @@ export const listMcpTools = async () => {
 };
 
 const getConnectionStatusText = (readyState) => {
-  return {
-    [ReadyState.CONNECTING]: 'Connecting',
-    [ReadyState.OPEN]: 'Open',
-    [ReadyState.CLOSING]: 'Closing',
-    [ReadyState.CLOSED]: 'Closed',
-    [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
-  }[readyState] || 'Unknown';
+  return (
+    {
+      [ReadyState.CONNECTING]: "Connecting",
+      [ReadyState.OPEN]: "Open",
+      [ReadyState.CLOSING]: "Closing",
+      [ReadyState.CLOSED]: "Closed",
+      [ReadyState.UNINSTANTIATED]: "Uninstantiated",
+    }[readyState] || "Unknown"
+  );
 };
 
 export const useConversationWebSocket = (options = {}) => {
-  const [socketUrl] = useState('ws://127.0.0.1:8000/api/ws/conversation');
+  const [socketUrl] = useState("ws://127.0.0.1:8000/api/ws/conversation");
 
   const {
     sendMessage: wsSendMessage,
@@ -119,18 +121,19 @@ export const useConversationWebSocket = (options = {}) => {
     getWebSocket,
   } = useWebSocket(socketUrl, {
     onOpen: () => {
-      console.log('WebSocket opened');
+      console.log("WebSocket opened");
       options.onOpen?.();
     },
     onClose: () => {
-      console.log('WebSocket closed');
+      console.log("WebSocket closed");
       options.onClose?.();
     },
     onError: (event) => {
-      console.error('WebSocket error:', event);
+      console.error("WebSocket error:", event);
       options.onError?.(event);
     },
-    shouldReconnect: (closeEvent) => options.shouldReconnect?.(closeEvent) ?? true,
+    shouldReconnect: (closeEvent) =>
+      options.shouldReconnect?.(closeEvent) ?? true,
     reconnectAttempts: options.reconnectAttempts ?? 10,
     reconnectInterval: options.reconnectInterval ?? 3000,
     ...options.webSocketOptions,
@@ -138,13 +141,16 @@ export const useConversationWebSocket = (options = {}) => {
 
   const connectionStatus = getConnectionStatusText(readyState);
 
-  const sendMessage = useCallback((message) => {
-    if (readyState === ReadyState.OPEN) {
-      wsSendMessage(message);
-    } else {
-      console.warn('WebSocket is not open. Message not sent.');
-    }
-  }, [readyState, wsSendMessage]);
+  const sendMessage = useCallback(
+    (message) => {
+      if (readyState === ReadyState.OPEN) {
+        wsSendMessage(message);
+      } else {
+        console.warn("WebSocket is not open. Message not sent.");
+      }
+    },
+    [readyState, wsSendMessage]
+  );
 
   return {
     sendMessage,
@@ -154,4 +160,4 @@ export const useConversationWebSocket = (options = {}) => {
     getWebSocket,
   };
 };
-export { ReadyState }; 
+export { ReadyState };

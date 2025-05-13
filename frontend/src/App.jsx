@@ -8,7 +8,12 @@ import "./App.css";
 import McpManager from "./components/mcp/McpManager";
 import Conversation from "./components/conversation/conversation";
 import NewWindow from "react-new-window";
+import { normalizeImageUrl } from "./utils/imageUtils";
+import { useVADConfiguration } from "./utils/vadConfig";
+
 const App = () => {
+  // Initialize VAD configuration
+  useVADConfiguration();
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem("chatHistory");
     return saved ? JSON.parse(saved) : [];
@@ -47,9 +52,21 @@ const App = () => {
         isUser: true,
         timestamp: new Date().toISOString(),
       };
-
       if (imageFile) {
-        newUserMessage.image = URL.createObjectURL(imageFile);
+        // Check if the file is a PDF
+        const isPdf =
+          imageFile.type === "application/pdf" ||
+          imageFile.name.toLowerCase().endsWith(".pdf");
+
+        if (isPdf) {
+          // For PDFs, don't use createObjectURL which causes rendering errors
+          newUserMessage.fileType = "pdf";
+          newUserMessage.fileName = imageFile.name;
+        } else {
+          // For images, create an object URL as before
+          newUserMessage.image = URL.createObjectURL(imageFile);
+          newUserMessage.fileType = "image";
+        }
       }
 
       setMessages((prev) => [...prev, newUserMessage]);
@@ -70,18 +87,14 @@ const App = () => {
           text: response.response || "",
           isUser: false,
           timestamp: new Date().toISOString(),
-        };
-
-        // Check for image in the direct response.image field
+        }; // Check for image in the direct response.image field
         if (response.image) {
           try {
             const serverUrl =
               import.meta.env.VITE_API_URL || "http://localhost:8000";
-            const imageUrl = response.image.startsWith("/")
-              ? `${serverUrl}${response.image}`
-              : `${serverUrl}/${response.image}`;
-
-            botMessage.image = imageUrl;
+            // Use the normalizeImageUrl utility to ensure consistent URL formatting
+            botMessage.image = normalizeImageUrl(response.image, serverUrl);
+            botMessage.imageValidated = true;
             console.log("Image URL from response:", botMessage.image);
           } catch (err) {
             console.error("Error forming image URL from response:", err);
@@ -94,12 +107,11 @@ const App = () => {
           try {
             const serverUrl =
               import.meta.env.VITE_API_URL || "http://localhost:8000";
-            const imageUrl =
-              response.artifacts.generate_image.image_url.startsWith("/")
-                ? `${serverUrl}${response.artifacts.generate_image.image_url}`
-                : `${serverUrl}/${response.artifacts.generate_image.image_url}`;
-
-            botMessage.image = imageUrl;
+            botMessage.image = normalizeImageUrl(
+              response.artifacts.generate_image.image_url,
+              serverUrl
+            );
+            botMessage.imageValidated = true;
             console.log(
               "Image URL from artifacts.generate_image:",
               botMessage.image
@@ -170,10 +182,12 @@ const App = () => {
               >
                 <Menu size={20} />
               </button>
-            </div>
+            </div>{" "}
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-claude-purple to-claude-lavender flex items-center justify-center">
-                <span className="text-white font-semibold text-sm">O</span>
+              <div className="w-8 h-8 rounded-full bg-[var(--foreground)] flex items-center justify-center">
+                <span className="text-[var(--background)] font-semibold text-sm">
+                  O
+                </span>
               </div>
               <h1 className="text-xl font-semibold hidden md:block">
                 Omni Multi-Agent
@@ -253,8 +267,8 @@ const App = () => {
               </Button>
             </div>
           </div>
-        )}
-      </header>{" "}
+        )}{" "}
+      </header>
       <McpManager
         isOpen={showMcpManager}
         onClose={() => setShowMcpManager(false)}
