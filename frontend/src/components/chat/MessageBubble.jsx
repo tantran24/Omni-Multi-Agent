@@ -14,47 +14,9 @@ import PDFAnalyzer from "../ui/PDFAnalyzer";
 import { isImageUrl, isPdfUrl } from "../../utils/imageUtils";
 // Import the external CSS file for markdown styling
 import "./MarkdownStyles.css";
+import MarkdownTypewriter from "./MarkdownTypewriter";
 
-const TypewriterEffect = ({ text, delay = 3, onComplete }) => {
-  const [displayedText, setDisplayedText] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isComplete, setIsComplete] = useState(false);
-
-  useEffect(() => {
-    setDisplayedText("");
-    setCurrentIndex(0);
-    setIsComplete(false);
-  }, [text]);
-
-  useEffect(() => {
-    if (currentIndex < text.length) {
-      const timer = setTimeout(() => {
-        setDisplayedText((prev) => prev + text[currentIndex]);
-        setCurrentIndex((prevIndex) => prevIndex + 1);
-      }, delay);
-
-      return () => clearTimeout(timer);
-    } else if (!isComplete) {
-      setIsComplete(true);
-      if (onComplete) onComplete();
-    }
-  }, [currentIndex, delay, text, isComplete, onComplete]);
-
-  return (
-    <div className="w-full">
-      <div className="whitespace-pre-wrap">
-        {formatModelOutput ? formatModelOutput(displayedText) : displayedText}
-      </div>
-      {!isComplete && <span className="typing-cursor">|</span>}
-    </div>
-  );
-};
-
-TypewriterEffect.propTypes = {
-  text: PropTypes.string.isRequired,
-  delay: PropTypes.number,
-  onComplete: PropTypes.func,
-};
+// The MessageBubble component for the chat interface
 
 const MessageBubble = ({
   message,
@@ -363,6 +325,7 @@ const MessageBubble = ({
           }
         `}
       >
+        {" "}
         <div className="p-3.5 overflow-hidden break-words text-sm">
           {isUser || typewriterComplete ? (
             <div className="markdown-message prose dark:prose-invert prose-sm max-w-none">
@@ -378,9 +341,11 @@ const MessageBubble = ({
               </ReactMarkdown>
             </div>
           ) : (
-            <TypewriterEffect
+            <MarkdownTypewriter
               text={cleanMarkdown(text)}
               onComplete={() => setTypewriterComplete(true)}
+              markdownComponents={markdownComponents}
+              speed={20}
             />
           )}
           {fileType === "pdf" && fileName && (
