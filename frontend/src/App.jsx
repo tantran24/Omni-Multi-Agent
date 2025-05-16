@@ -3,11 +3,17 @@ import ChatBox from "./components/chat/ChatBox";
 import MessageInput from "./components/chat/MessageInput";
 import { chatWithLLM } from "./services/api";
 import { Button } from "./components/ui/Button";
-import { Moon, Sun, RotateCcw, Menu } from "lucide-react";
+import { Moon, Sun, RotateCcw, Menu, BotMessageSquare } from "lucide-react";
 import "./App.css";
-import McpManager from "./components/mcp/McpManager"; // import MCP Manager
+import McpManager from "./components/mcp/McpManager";
+import Conversation from "./components/conversation/conversation";
+import NewWindow from "react-new-window";
+import { normalizeImageUrl } from "./utils/imageUtils";
+import { useVADConfiguration } from "./utils/vadConfig";
 
 const App = () => {
+  // Initialize VAD configuration
+  useVADConfiguration();
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem("chatHistory");
     return saved ? JSON.parse(saved) : [];
@@ -22,7 +28,7 @@ const App = () => {
     );
   });
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showMcpManager, setShowMcpManager] = useState(false); // MCP manager visibility
+  const [showMcpManager, setShowMcpManager] = useState(false);
 
   useEffect(() => {
     if (darkMode) {
@@ -46,9 +52,21 @@ const App = () => {
         isUser: true,
         timestamp: new Date().toISOString(),
       };
-
       if (imageFile) {
-        newUserMessage.image = URL.createObjectURL(imageFile);
+        // Check if the file is a PDF
+        const isPdf =
+          imageFile.type === "application/pdf" ||
+          imageFile.name.toLowerCase().endsWith(".pdf");
+
+        if (isPdf) {
+          // For PDFs, don't use createObjectURL which causes rendering errors
+          newUserMessage.fileType = "pdf";
+          newUserMessage.fileName = imageFile.name;
+        } else {
+          // For images, create an object URL as before
+          newUserMessage.image = URL.createObjectURL(imageFile);
+          newUserMessage.fileType = "image";
+        }
       }
 
       setMessages((prev) => [...prev, newUserMessage]);
@@ -69,20 +87,37 @@ const App = () => {
           text: response.response || "",
           isUser: false,
           timestamp: new Date().toISOString(),
-        };
-
+        }; // Check for image in the direct response.image field
         if (response.image) {
           try {
             const serverUrl =
               import.meta.env.VITE_API_URL || "http://localhost:8000";
-            const imageUrl = response.image.startsWith("/")
-              ? `${serverUrl}${response.image}`
-              : `${serverUrl}/${response.image}`;
-
-            botMessage.image = imageUrl;
-            console.log("Image URL:", botMessage.image);
+            // Use the normalizeImageUrl utility to ensure consistent URL formatting
+            botMessage.image = normalizeImageUrl(response.image, serverUrl);
+            botMessage.imageValidated = true;
+            console.log("Image URL from response:", botMessage.image);
           } catch (err) {
-            console.error("Error forming image URL:", err);
+            console.error("Error forming image URL from response:", err);
+          }
+        } else if (
+          response.artifacts &&
+          response.artifacts.generate_image &&
+          response.artifacts.generate_image.image_url
+        ) {
+          try {
+            const serverUrl =
+              import.meta.env.VITE_API_URL || "http://localhost:8000";
+            botMessage.image = normalizeImageUrl(
+              response.artifacts.generate_image.image_url,
+              serverUrl
+            );
+            botMessage.imageValidated = true;
+            console.log(
+              "Image URL from artifacts.generate_image:",
+              botMessage.image
+            );
+          } catch (err) {
+            console.error("Error forming image URL from artifacts:", err);
           }
         }
 
@@ -125,7 +160,15 @@ const App = () => {
   const handleStarterPrompt = (promptText) => {
     handleSendMessage(promptText);
   };
+  const [isWindowOpen, setIsWindowOpen] = useState(false);
 
+  const handleOpenConversation = () => {
+    setIsWindowOpen(true);
+  };
+
+  const handleCloseWindow = () => {
+    setIsWindowOpen(false);
+  };
   return (
     <div className="flex flex-col min-h-screen bg-[var(--background)] text-[var(--foreground)] transition-colors duration-200">
       <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--background)] backdrop-blur-sm">
@@ -139,10 +182,12 @@ const App = () => {
               >
                 <Menu size={20} />
               </button>
-            </div>
+            </div>{" "}
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-claude-purple to-claude-lavender flex items-center justify-center">
-                <span className="text-white font-semibold text-sm">O</span>
+              <div className="w-8 h-8 rounded-full bg-[var(--foreground)] flex items-center justify-center">
+                <span className="text-[var(--background)] font-semibold text-sm">
+                  O
+                </span>
               </div>
               <h1 className="text-xl font-semibold hidden md:block">
                 Omni Multi-Agent
@@ -160,14 +205,30 @@ const App = () => {
             >
               {darkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-
+            <Button
+              onClick={handleOpenConversation}
+              className="hidden md:flex items-center gap-2 bg-[var(--accent)] hover:bg-[var(--accent)]/80 text-[var(--accent-foreground)]"
+              variant="outline"
+              disabled={isWindowOpen}
+            >
+              <BotMessageSquare size={16} />
+              <span>Conversation</span>
+            </Button>
+            {isWindowOpen && (
+              <NewWindow
+                onUnload={handleCloseWindow}
+                title="Conversation Window"
+              >
+                <Conversation handleCloseWindow={handleCloseWindow} />
+              </NewWindow>
+            )}
             <Button
               onClick={() => {
                 console.log("MCP Tools button clicked");
                 setShowMcpManager(true);
               }}
-              variant="primary"
-              className="flex items-center gap-2"
+              variant="outline"
+              className="flex items-center gap-2 bg-[var(--accent)] hover:bg-[var(--accent)]/80 text-[var(--accent-foreground)]"
             >
               MCP Tools
             </Button>
@@ -206,20 +267,18 @@ const App = () => {
               </Button>
             </div>
           </div>
-        )}
+        )}{" "}
       </header>
-
-      {showMcpManager && (
-        <McpManager onClose={() => setShowMcpManager(false)} />
-      )}
-
+      <McpManager
+        isOpen={showMcpManager}
+        onClose={() => setShowMcpManager(false)}
+      />
       <ChatBox
         messages={messages}
         isTyping={isTyping}
         darkMode={darkMode}
         onPromptClick={handleStarterPrompt}
       />
-
       <MessageInput
         onSendMessage={handleSendMessage}
         onAttachFile={handleAttachFile}

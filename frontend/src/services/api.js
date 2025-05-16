@@ -1,4 +1,6 @@
 import axios from "axios";
+import { useState, useEffect, useCallback } from "react";
+import useWebSocket, { ReadyState } from "react-use-websocket";
 
 const API_URL = "http://localhost:8000/api";
 
@@ -46,11 +48,11 @@ export const chatWithLLM = async (message, formData) => {
 };
 
 export const uploadVoiceRecording = async (audioChunks) => {
-  const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+  const audioBlob = new Blob(audioChunks, { type: "audio/mp3" });
 
   try {
     const formData = new FormData();
-    formData.append("audio", audioBlob, "recording.wav");
+    formData.append("audio", audioBlob, "recording.mp3");
 
     const formApi = axios.create({
       baseURL: "http://127.0.0.1:8000/api",
@@ -96,3 +98,66 @@ export const listMcpTools = async () => {
   const response = await api.get("/mcp/tools");
   return response.data;
 };
+
+const getConnectionStatusText = (readyState) => {
+  return (
+    {
+      [ReadyState.CONNECTING]: "Connecting",
+      [ReadyState.OPEN]: "Open",
+      [ReadyState.CLOSING]: "Closing",
+      [ReadyState.CLOSED]: "Closed",
+      [ReadyState.UNINSTANTIATED]: "Uninstantiated",
+    }[readyState] || "Unknown"
+  );
+};
+
+export const useConversationWebSocket = (options = {}) => {
+  const [socketUrl] = useState("ws://127.0.0.1:8000/api/ws/conversation");
+
+  const {
+    sendMessage: wsSendMessage,
+    lastMessage,
+    readyState,
+    getWebSocket,
+  } = useWebSocket(socketUrl, {
+    onOpen: () => {
+      console.log("WebSocket opened");
+      options.onOpen?.();
+    },
+    onClose: () => {
+      console.log("WebSocket closed");
+      options.onClose?.();
+    },
+    onError: (event) => {
+      console.error("WebSocket error:", event);
+      options.onError?.(event);
+    },
+    shouldReconnect: (closeEvent) =>
+      options.shouldReconnect?.(closeEvent) ?? true,
+    reconnectAttempts: options.reconnectAttempts ?? 10,
+    reconnectInterval: options.reconnectInterval ?? 3000,
+    ...options.webSocketOptions,
+  });
+
+  const connectionStatus = getConnectionStatusText(readyState);
+
+  const sendMessage = useCallback(
+    (message) => {
+      if (readyState === ReadyState.OPEN) {
+        wsSendMessage(message);
+      } else {
+        console.warn("WebSocket is not open. Message not sent.");
+      }
+    },
+    [readyState, wsSendMessage]
+  );
+
+  return {
+    sendMessage,
+    lastMessage,
+    readyState,
+    connectionStatus,
+    getWebSocket,
+  };
+};
+export { ReadyState };

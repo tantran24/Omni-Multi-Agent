@@ -18,6 +18,10 @@ def get_assistant_agent_prompt():
     return """You are the Assistant Agent. Provide helpful and concise responses."""
 
 
+def get_conversation_assistant_agent_prompt():
+    return """You’re a friendly assistant in a voice conversation. Talk like you’re chatting with a friend—casual, clear, and helpful. No formal writing—just natural speech."""
+
+
 def get_math_agent_prompt():
     return """You are the Math Agent. Solve mathematical problems step-by-step.
 Use $ for inline math notation and $$ for display math when helpful."""

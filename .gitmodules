@@ -1,3 +1,0 @@
-[submodule "backend/backend/stt"]
-	path = backend/backend/stt
-	url = https://github.com/khanld/chunkformer.git

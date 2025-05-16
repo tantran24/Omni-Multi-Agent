@@ -16,10 +16,11 @@ export const LoadingSpinner = ({
       lg: "w-8 h-8",
       xl: "w-12 h-12",
     }[size] || "w-6 h-6";
-
   return (
     <div className={`flex items-center justify-center ${className}`} {...props}>
-      <Loader2 className={`animate-spin text-claude-purple ${sizeClass}`} />
+      <Loader2
+        className={`animate-spin text-[var(--foreground)] ${sizeClass}`}
+      />
     </div>
   );
 };
@@ -30,8 +31,10 @@ export const LoadingSpinner = ({
 export const FullPageLoading = () => {
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-[var(--background)] z-50">
-      <div className="w-16 h-16 rounded-full bg-gradient-to-r from-claude-purple to-claude-lavender flex items-center justify-center mb-6">
-        <span className="text-white font-semibold text-xl">O</span>
+      <div className="w-16 h-16 rounded-full bg-[var(--foreground)] flex items-center justify-center mb-6">
+        <span className="text-[var(--background)] font-semibold text-xl">
+          O
+        </span>
       </div>
       <LoadingSpinner size="lg" className="mb-4" />
       <p className="text-[var(--muted-foreground)] animate-pulse">Loading...</p>
