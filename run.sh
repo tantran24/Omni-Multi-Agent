@@ -1,7 +1,7 @@
 #!/bin/bash
 echo "Starting FastAPI backend..."
 cd backend || exit
-uvicorn main:app --reload --host 0.0.0.0 --port 8000 &
+python main.py
 BACKEND_PID=$!
 
 cd ../frontend/omni-multi-agent-app || exit
