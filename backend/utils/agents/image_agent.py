@@ -55,7 +55,7 @@ class ImageAgent:
 
 def main():
     agent = ImageAgent(provider="google_ai_studio")
-    result = agent.generate_image("A cat astronaut on Mars")
+    result = agent.generate_image("A cat astronaut on Moon")
 
     print(f"\n✅ Image generated successfully!")
     print(f"File path: {result['filepath']}")

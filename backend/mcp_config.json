@@ -10,5 +10,59 @@
       "83ba8c64-cf9d-4033-ab36-91366e89f9c8"
     ],
     "transport": "stdio"
+  },
+  "think-mcp-server": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "@smithery/cli@latest",
+      "run",
+      "@marcopesani/think-mcp-server",
+      "--key",
+      "f8cefc5c-5aea-4dba-b091-e3e4fefe1349"
+    ],
+    "transport": "stdio"
+  },
+  "server-sequential-thinking": {
+    "command": "cmd",
+    "args": [
+      "/c",
+      "npx",
+      "-y",
+      "@smithery/cli@latest",
+      "run",
+      "@smithery-ai/server-sequential-thinking",
+      "--key",
+      "f8cefc5c-5aea-4dba-b091-e3e4fefe1349"
+    ],
+    "transport": "stdio"
+  },
+  "context7-mcp": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "@smithery/cli@latest",
+      "run",
+      "@upstash/context7-mcp",
+      "--key",
+      "f8cefc5c-5aea-4dba-b091-e3e4fefe1349"
+    ],
+    "transport": "stdio"
+  },
+  "github-repo-mcp": {
+    "command": "cmd",
+    "args": [
+      "/c",
+      "npx",
+      "-y",
+      "@smithery/cli@latest",
+      "run",
+      "@Ryan0204/github-repo-mcp",
+      "--key",
+      "f8cefc5c-5aea-4dba-b091-e3e4fefe1349",
+      "--profile",
+      "parliamentary-cod-32H8mW"
+    ],
+    "transport": "stdio"
   }
 }

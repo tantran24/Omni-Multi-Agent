@@ -9,3 +9,7 @@ __pycache__/
 node_modules/
 *.log
 *.sqlite3
+*.zip
+*.exe
+/snapshots
+/storage
