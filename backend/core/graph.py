@@ -101,8 +101,10 @@ async def create_agent_graph():
 
         return node_func
 
+    # Add nodes to the workflow - corrected to properly await the coroutine
     for agent_name in agents:
-        workflow.add_node(agent_name, await create_agent_node(agent_name))
+        node_func = await create_agent_node(agent_name)
+        workflow.add_node(agent_name, node_func)
 
     workflow.set_entry_point("router")
 
@@ -236,8 +238,10 @@ async def create_conversation_agent_graph():
 
         return node_func
 
+    # Add nodes to the workflow - corrected to properly await the coroutine
     for agent_name in agents:
-        workflow.add_node(agent_name, await create_agent_node(agent_name))
+        node_func = await create_agent_node(agent_name)
+        workflow.add_node(agent_name, node_func)
 
     workflow.set_entry_point("router")
 

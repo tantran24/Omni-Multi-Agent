@@ -25,7 +25,7 @@ class BaseAgent:
 
     async def initialize_tools(self) -> None:
         """Initialize tools asynchronously"""
-        agent_tools = get_tools_for_agent(self.agent_type)
+        agent_tools = await get_tools_for_agent(self.agent_type)
         mcp_tools = await ToolHandler.initialize_tools()
         self.tools = agent_tools + mcp_tools
 
@@ -54,7 +54,26 @@ class BaseAgent:
             processed_content, artifacts = await ToolHandler.process_tool_calls(
                 response.content, self.tools
             )
+            
+            if artifacts:
+                tool_results_message = f"""Your previous response contained tool calls. Here are the results:
+{processed_content}
 
+Tool Results:
+"""
+                for tool_name, result in artifacts.items():
+                    tool_results_message += f"- {tool_name}: {result}\n"
+                
+                tool_results_message += "\nPlease provide a final response that incorporates these tool results appropriately."
+                
+                messages.append(AIMessage(content=response.content))
+                messages.append(HumanMessage(content=tool_results_message))
+                
+                final_response = await self.llm.invoke(messages)
+                if final_response:
+                    messages = [AIMessage(content=final_response.content)]
+                    return {"messages": messages, "artifacts": artifacts}
+            
             messages = [AIMessage(content=processed_content)]
             return {"messages": messages, "artifacts": artifacts}
 

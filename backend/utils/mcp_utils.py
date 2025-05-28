@@ -1,7 +1,3 @@
-"""
-Utility functions for working with MCP in the multi-agent system
-"""
-
 import logging
 import asyncio
 from typing import Dict, List, Any
@@ -30,7 +26,7 @@ async def check_mcp_status() -> Dict[str, Any]:
             status["initialization_attempt"] = f"error: {str(e)}"
 
     try:
-        tools = detach_mcp_service.get_tools()
+        tools = await detach_mcp_service.get_tools()
         status["tools_count"] = len(tools)
         status["tool_names"] = [t.name for t in tools] if tools else []
     except Exception as e:
@@ -45,7 +41,11 @@ def get_mcp_tools_by_category() -> Dict[str, List[str]]:
     """
     Organize MCP tools by category to help with agent routing
     """
-    tools = detach_mcp_service.get_tools()
+    tools = []
+    if detach_mcp_service.initialized and detach_mcp_service.client:
+        if hasattr(detach_mcp_service.client, "tools"):
+            tools = detach_mcp_service.client.tools
+
     if not tools:
         return {}
 

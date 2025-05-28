@@ -20,7 +20,7 @@ export const Button = React.forwardRef(
     const getVariantClasses = () => {
       switch (variant) {
         case "primary":
-          return "bg-claude-purple text-white hover:bg-claude-purple/90";
+          return "bg-[var(--foreground)] text-[var(--background)] hover:bg-[var(--foreground)]/90";
         case "outline":
           return "bg-transparent border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--accent)]";
         case "ghost":

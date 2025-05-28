@@ -16,7 +16,7 @@ async def initialize_mcp_on_startup():
         if not detach_mcp_service.initialized:
             await detach_mcp_service.initialize_client()
 
-        tools = detach_mcp_service.get_tools()
+        tools = await detach_mcp_service.get_tools()
         if tools:
             logger.info(
                 f"MCP initialization successful! Found {len(tools)} tools: {[t.name for t in tools]}"

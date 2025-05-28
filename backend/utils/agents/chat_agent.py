@@ -35,7 +35,6 @@ class ChatAgent:
 
             try:
                 response = await self.agent_executor.ainvoke(input_state)
-
                 if isinstance(response, dict):
                     output = response.get("output", "")
 
@@ -43,10 +42,12 @@ class ChatAgent:
                         self.chat_history = response["chat_history"]
 
                     artifacts = response.get("artifacts", {})
-                    if "image" in artifacts:
-                        image_path = artifacts["image"]
+                    if "generate_image" in artifacts:
+                        image_path = artifacts["generate_image"]
                         if "![Generated Image]" not in output:
                             output += f"\n\n![Generated Image]({image_path})"
+
+                    # Include any other artifact processing here if needed
 
                     return output
                 else:

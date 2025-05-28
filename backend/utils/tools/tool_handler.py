@@ -32,7 +32,6 @@ class ToolHandler:
                 else:
                     args = {"input": args}
 
-
             # Handle async tools
             if hasattr(tool, "ainvoke"):
                 return await tool.ainvoke(args)
@@ -98,7 +97,8 @@ class ToolHandler:
                 # Invoke tool
                 result = await ToolHandler.ainvoke_tool(tool, args)
                 artifacts[tool_name] = result
-                return str(result)
+
+                return f"[Tool Result: {tool_name}]"
             except Exception as e:
                 logger.error(f"Error processing tool call: {e}")
                 return f"Error: {str(e)}"
@@ -128,7 +128,7 @@ class ToolHandler:
         try:
             if not detach_mcp_service.initialized:
                 await detach_mcp_service.initialize_client()
-            return detach_mcp_service.get_tools()
+            return await detach_mcp_service.get_tools()
         except Exception as e:
             logger.error(f"Error initializing tools: {e}")
             return []

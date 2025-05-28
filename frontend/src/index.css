@@ -9,19 +9,18 @@
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
-
   /* Light mode colors */
   --background: #f9fafb;
   --foreground: #18181b;
   --muted: #f4f4f5;
   --muted-foreground: #71717a;
-  --primary: #8e44ad;
+  --primary: #18181b;
   --primary-foreground: #fafafa;
   --accent: #f4f4f5;
   --accent-foreground: #18181b;
   --border: #e4e4e7;
   --input: #e4e4e7;
-  --user-message: #8e44ad;
+  --user-message: #18181b;
   --bot-message: #ffffff;
   --system-message: #f0f7ff;
 }
@@ -31,13 +30,13 @@
   --foreground: #fafafa;
   --muted: #27272a;
   --muted-foreground: #a1a1aa;
-  --primary: #9b59b6;
-  --primary-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-foreground: #18181b;
   --accent: #27272a;
   --accent-foreground: #fafafa;
   --border: #27272a;
   --input: #27272a;
-  --user-message: #9b59b6;
+  --user-message: #fafafa;
   --bot-message: #27272a;
   --system-message: #1e293b;
 }
@@ -133,6 +132,14 @@ button:active {
   animation: pulse 1.5s infinite;
 }
 
+/* Typing indicator animation - enhanced */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  height: 18px;
+  gap: 2px;
+}
+
 /* Custom scrollbar class */
 .custom-scrollbar {
   scrollbar-width: thin;
@@ -155,4 +162,56 @@ button:active {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: rgba(113, 113, 122, 0.5);
+}
+
+/* CSS to handle responsive images and fix broken image icons */
+.markdown-message img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  display: block;
+  margin: 1rem 0;
+  transition: all 0.3s ease;
+}
+
+/* Fix markdown formatting */
+.markdown-message pre {
+  white-space: pre-wrap;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.markdown-message pre:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.markdown-message blockquote {
+  border-left: 4px solid var(--primary);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  font-style: italic;
+  color: var(--muted-foreground);
+}
+
+.markdown-message table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.markdown-message tr:nth-child(even) {
+  background-color: var(--accent);
+}
+
+/* Fix line breaks in markdown output */
+.markdown-message p {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* Add smooth transitions */
+.chat-image {
+  transition: all 0.3s ease-in-out;
 }

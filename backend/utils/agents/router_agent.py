@@ -20,57 +20,63 @@ logger = logging.getLogger(__name__)
 
 class RouterAgent(BaseAgent):
     """Router agent that directs messages to specialized agents"""
+
     def __init__(self):
         super().__init__()
         self.agent_type = "router"
         self.agent_name = "Router Agent"
-        
+
         self._ensure_mcp_initialized()
 
-        
     def _ensure_mcp_initialized(self):
         """Ensure MCP service is initialized"""
         try:
             import asyncio
+
             loop = asyncio.get_event_loop()
             if not detach_mcp_service.initialized:
-                try:
-                    if loop.is_running():
-                        asyncio.create_task(detach_mcp_service.initialize_client())
-                    else:
-                        loop.run_until_complete(detach_mcp_service.initialize_client())
-                except RuntimeError as re:
-                    if "There is no current event loop" in str(re):
-                        new_loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(new_loop)
-                        new_loop.run_until_complete(detach_mcp_service.initialize_client())
-            
-            status = "initialized" if detach_mcp_service.initialized else "failed to initialize"
-            logger.info(f"MCP service status: {status}")
+                logger.info("MCP service not initialized in RouterAgent")
+
+            status = (
+                "initialized" if detach_mcp_service.initialized else "not initialized"
+            )
+            logger.info(f"MCP service status in RouterAgent: {status}")
         except Exception as e:
-            logger.error(f"Error initializing MCP service: {e}")
-            
+            logger.error(f"Error checking MCP service: {e}")
+
     def get_system_prompt(self) -> str:
         """Get the specialized router prompt including MCP tool names"""
         prompt = get_router_prompt()
-        
+
         self._ensure_mcp_initialized()
-        
-        mcp_tools = detach_mcp_service.get_tools()
-        if mcp_tools:
-            tool_names = [t.name for t in mcp_tools]
-            prompt += "\n\nAvailable MCP tools: " + ", ".join(tool_names)
-            prompt += "\n\nMCP Tool Details:"
-            for tool in mcp_tools:
-                prompt += f"\n- {tool.name}: {tool.description}"
-                if hasattr(tool, 'args_schema') and tool.args_schema:
-                    try:
-                        param_names = list(tool.args_schema.__annotations__.keys())
-                        if param_names:
-                            prompt += f" (Parameters: {param_names})"
-                    except Exception:
-                        pass
-        
+
+        if detach_mcp_service.initialized:
+            try:
+                mcp_tools = []
+                if (
+                    hasattr(detach_mcp_service.client, "tools")
+                    and detach_mcp_service.client.tools
+                ):
+                    mcp_tools = detach_mcp_service.client.tools
+
+                if mcp_tools:
+                    tool_names = [t.name for t in mcp_tools]
+                    prompt += "\n\nAvailable MCP tools: " + ", ".join(tool_names)
+                    prompt += "\n\nMCP Tool Details:"
+                    for tool in mcp_tools:
+                        prompt += f"\n- {tool.name}: {tool.description}"
+                        if hasattr(tool, "args_schema") and tool.args_schema:
+                            try:
+                                param_names = list(
+                                    tool.args_schema.__annotations__.keys()
+                                )
+                                if param_names:
+                                    prompt += f" (Parameters: {param_names})"
+                            except Exception:
+                                pass
+            except Exception as e:
+                logger.error(f"Error getting MCP tool information: {e}")
+
         return prompt
 
     def create_specialized_agent(self, agent_type: str) -> BaseAgent:
@@ -81,13 +87,15 @@ class RouterAgent(BaseAgent):
             "image": ImageAgent,
             "math": MathAgent,
             "research": ResearchAgent,
-            "planning": PlanningAgent
+            "planning": PlanningAgent,
         }
-        
+
         if agent_type in agent_map:
             return agent_map[agent_type](self.llm)
-        
-        logger.warning(f"Unknown agent type: {agent_type}, defaulting to AssistantAgent")
+
+        logger.warning(
+            f"Unknown agent type: {agent_type}, defaulting to AssistantAgent"
+        )
         return AssistantAgent(self.llm)
 
 
@@ -99,17 +107,18 @@ class AssistantAgent(BaseAgent):
         self.agent_type = "assistant"
         self.agent_name = "Assistant Agent"
 
-        
     def get_system_prompt(self) -> str:
         """Get the specialized assistant prompt including tool descriptions"""
         system_prompt = get_assistant_agent_prompt()
         if self.tools:
             tool_lines = [f"- {tool.name}: {tool.description}" for tool in self.tools]
-            tools_desc = "\n\nYou have access to the following tools:\n" + "\n".join(tool_lines)
-            tools_desc += "\n\nUse tools by indicating \"[Tool Used] tool_name(args)\" in your response."
+            tools_desc = "\n\nYou have access to the following tools:\n" + "\n".join(
+                tool_lines
+            )
+            tools_desc += '\n\nUse tools by indicating "[Tool Used] tool_name(args)" in your response.'
         else:
             tools_desc = ""
-            
+
         return f"{system_prompt}{tools_desc}"
 
 
@@ -132,7 +141,6 @@ class ResearchAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "research"
         self.agent_name = "Research Agent"
-
 
     def get_system_prompt(self) -> str:
         return get_research_agent_prompt()
@@ -157,7 +165,7 @@ class ImageAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "image"
         self.agent_name = "Image Agent"
-        
+
     def get_system_prompt(self) -> str:
         return get_image_agent_prompt()
 
@@ -169,15 +177,16 @@ class ConversationAssistantAgent(BaseAgent):
         super().__init__(llm)
         self.agent_type = "voice_assistant"
         self.agent_name = "Voice Assistant Agent"
-        self.initialize_tools()
 
     def get_system_prompt(self) -> str:
         """Get the specialized assistant prompt including tool descriptions"""
         system_prompt = get_conversation_assistant_agent_prompt()
         if self.tools:
             tool_lines = [f"- {tool.name}: {tool.description}" for tool in self.tools]
-            tools_desc = "\n\nYou have access to the following tools:\n" + "\n".join(tool_lines)
-            tools_desc += "\n\nUse tools by indicating \"[Tool Used] tool_name(args)\" in your response."
+            tools_desc = "\n\nYou have access to the following tools:\n" + "\n".join(
+                tool_lines
+            )
+            tools_desc += '\n\nUse tools by indicating "[Tool Used] tool_name(args)" in your response.'
         else:
             tools_desc = ""
 
