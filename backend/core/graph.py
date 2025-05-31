@@ -4,12 +4,12 @@ from langgraph.graph import StateGraph, END
 from utils.agents.router_agent import (
     RouterAgent,
     AssistantAgent,
-    ImageAgent,
     MathAgent,
     ResearchAgent,
     PlanningAgent,
     ConversationAssistantAgent,
 )
+from utils.agents.image_agent import ImageAgent
 import logging
 import re
 from langchain_core.runnables import RunnableConfig

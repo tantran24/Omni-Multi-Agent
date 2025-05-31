@@ -4,15 +4,22 @@ def get_system_prompt():
 
 def get_router_prompt():
     return """Route user queries to the appropriate agent:
-- Assistant: General conversation and questions
-- Research: Fact-checking and information gathering
-- Math: Calculations and mathematical problems
-- Planning: Scheduling and task organization
-- Image: Visual content generation (keywords: draw, image, picture, visualize)
+    - Assistant: General conversation and questions
+    - Research: Fact-checking and information gathering
+    - Math: Calculations and mathematical problems
+    - Planning: Scheduling and task organization
+    - Image: Visual content generation (keywords: draw, image, picture, visualize)
 
-Respond only with "ROUTE: [Agent Name]"
-"""
+    Respond only with "ROUTE: [Agent Name]"
+    """
 
+def get_RAG_system_prompt(self) -> str:
+    return (
+        # "You are an intelligent assistant that provides accurate, relevant, and well-sourced answers using the retrieved knowledge base documents."
+        """Bạn là một trợ lý thông minh, có nhiệm vụ trả lời chính xác, dễ hiểu và có dẫn chứng rõ ràng dựa trên tài liệu đã được truy xuất từ cơ sở dữ liệu kiến thức tiếng Việt. 
+        Luôn sử dụng văn phong tiếng Việt chuẩn, súc tích và khoa học. Nếu có thể, hãy nêu rõ nguồn thông tin (tên tài liệu hoặc vị trí đoạn văn).
+        Nếu không đủ thông tin để trả lời, hãy trả lời một cách trung thực rằng bạn không chắc chắn."""
+    )
 
 def get_assistant_agent_prompt():
     return """You are the Assistant Agent. Provide helpful and concise responses."""

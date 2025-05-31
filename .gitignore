@@ -11,5 +11,4 @@ node_modules/
 *.sqlite3
 *.zip
 *.exe
-/snapshots
-/storage
+backend/database/qdrant/storage/
