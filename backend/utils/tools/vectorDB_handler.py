@@ -72,20 +72,23 @@ def load_documents_from_directory(
     processed_dir = os.path.join(directory_path, "processed")
     os.makedirs(processed_dir, exist_ok=True)
 
-    # print("Downloading RapidOCR models")
-    # download_path = snapshot_download(repo_id="SWHL/RapidOCR")
+    print("Downloading RapidOCR models")
+    download_path = snapshot_download(repo_id="SWHL/RapidOCR")
 
-    # det_model_path = os.path.join(download_path, "PP-OCRv4", "en_PP-OCRv3_det_infer.onnx")
-    # rec_model_path = os.path.join(download_path, "PP-OCRv4", "ch_PP-OCRv4_rec_server_infer.onnx")
-    # cls_model_path = os.path.join(download_path, "PP-OCRv3", "ch_ppocr_mobile_v2.0_cls_train.onnx")
+    det_model_path = os.path.join(download_path, "PP-OCRv4", "en_PP-OCRv3_det_infer.onnx")
+    rec_model_path = os.path.join(download_path, "PP-OCRv4", "ch_PP-OCRv4_rec_server_infer.onnx")
+    cls_model_path = os.path.join(download_path, "PP-OCRv3", "ch_ppocr_mobile_v2.0_cls_train.onnx")
 
-    # ocr_options = RapidOcrOptions(
-    #     det_model_path=det_model_path,
-    #     rec_model_path=rec_model_path,
-    #     cls_model_path=cls_model_path,
-    # )
+    ocr_options = RapidOcrOptions(
+        det_model_path=det_model_path,
+        rec_model_path=rec_model_path,
+        cls_model_path=cls_model_path,
+    )
 
-    pipeline_options = PdfPipelineOptions(do_ocr=False)
+    pipeline_options = PdfPipelineOptions(
+        ocr_options=ocr_options
+        # do_ocr=False
+        )
     converter = DocumentConverter(
         format_options={
             InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options),
@@ -228,10 +231,15 @@ def query_qdrant(
 import time
 
 if __name__ == "__main__":
-    # directory = "database"
-    # print(f"Loading documents from: {directory}")
-    # documents = load_documents_from_directory(directory)
-    # print(f"Loaded {len(documents)} documents.")
+    directory = "database"
+    print(f"Loading documents from: {directory}")
+    start_time = time.time()
+
+    documents = load_documents_from_directory(directory)
+    end_time = time.time()
+    elapsed_seconds = end_time - start_time
+    elapsed_minutes = elapsed_seconds / 60
+    print(f"Loaded {len(documents)} documents. Completed in {elapsed_minutes:.2f} minutes ({elapsed_seconds:.2f} seconds.")
 
     # print("Indexing...")
     # start_time = time.time()
@@ -248,15 +256,15 @@ if __name__ == "__main__":
 
     # print(f"Indexing complete in {elapsed_minutes:.2f} minutes ({elapsed_seconds:.2f} seconds). Qdrant collection is ready.")
 
-    vectorstore = QdrantVectorStore(
-        client=QdrantClient(url="http://localhost:6333"),
-        collection_name="rag_collection",
-        embedding=HuggingFaceEmbeddings(model_name="thanhtantran/Vietnamese_Embedding_v2")
-    )
+    # vectorstore = QdrantVectorStore(
+    #     client=QdrantClient(url="http://localhost:6333"),
+    #     collection_name="rag_collection",
+    #     embedding=HuggingFaceEmbeddings(model_name="thanhtantran/Vietnamese_Embedding_v2")
+    # )
 
-    # Simple test query
-    test_query = "Chuyển động thẳng biến đổi đều là gì?"
+    # # Simple test query
+    # test_query = "Chuyển động thẳng biến đổi đều là gì?"
 
-    print(f"\nQuerying: '{test_query}'")
-    query_qdrant(vectorstore, test_query)
+    # print(f"\nQuerying: '{test_query}'")
+    # query_qdrant(vectorstore, test_query)
 

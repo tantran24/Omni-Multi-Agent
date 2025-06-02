@@ -13,7 +13,7 @@ def get_router_prompt():
     Respond only with "ROUTE: [Agent Name]"
     """
 
-def get_RAG_system_prompt(self) -> str:
+def get_RAG_system_prompt() -> str:
     return (
         # "You are an intelligent assistant that provides accurate, relevant, and well-sourced answers using the retrieved knowledge base documents."
         """Bạn là một trợ lý thông minh, có nhiệm vụ trả lời chính xác, dễ hiểu và có dẫn chứng rõ ràng dựa trên tài liệu đã được truy xuất từ cơ sở dữ liệu kiến thức tiếng Việt. 

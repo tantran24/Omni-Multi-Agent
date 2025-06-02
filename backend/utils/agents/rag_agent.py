@@ -5,7 +5,7 @@ from langchain.schema import Document
 from langchain_qdrant import QdrantVectorStore
 from langchain_core.vectorstores import VectorStoreRetriever
 
-from base_agent import BaseAgent
+from .base_agent import BaseAgent
 import logging
 from .prompts import get_RAG_system_prompt
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class RAGAgent(BaseAgent):
     """Retrieval-Augmented Generation (RAG) Agent with LangGraph"""
 
-    def __init__(self, llm, vectorstore: QdrantVectorStore):
+    def __init__(self, vectorstore: QdrantVectorStore, llm=None):
         super().__init__(llm)
         self.vectorstore = vectorstore
         self.retriever = self.vectorstore.as_retriever()
@@ -26,20 +26,20 @@ class RAGAgent(BaseAgent):
     def _build_workflow(self) -> Runnable:
         """Build LangGraph workflow for the RAG agent"""
 
-        def retrieve_node(state: dict) -> dict:
+        async def retrieve_node(state: dict) -> dict:
             query = state["input"].content
-            docs = self.retriever.invoke(query)
+            docs = await self.retriever.ainvoke(query)
             context = "\n".join(doc.page_content for doc in docs)
+            print("YOLO MOTHER FUCKER CONTEXT:\n ", context)
             state["context"] = context
             return state
 
-        def generate_node(state: dict) -> dict:
+        async def generate_node(state: dict) -> dict:
             context = state.get("context", "")
             query = state["input"].content
             system_prompt = SystemMessage(content=get_RAG_system_prompt())
             messages = [
                 system_prompt,
-                # HumanMessage(content=f"Use the following context to assist you in answering:\n{context}\n{query}")
                 HumanMessage(
                     content=(
                         f"Dưới đây là tài liệu tham khảo:\n{context}\n\n"
@@ -47,13 +47,14 @@ class RAGAgent(BaseAgent):
                     )
                 )
             ]
-            response = self.llm.invoke(messages)
+            response = await self.llm.invoke(messages)
             state["output"] = response
             return state
 
-        builder = StateGraph()
+        builder = StateGraph(state_schema=dict)
         builder.add_node("retrieve", retrieve_node)
         builder.add_node("generate", generate_node)
+
         builder.set_entry_point("retrieve")
         builder.add_edge("retrieve", "generate")
         builder.set_finish_point("generate")
@@ -65,7 +66,7 @@ class RAGAgent(BaseAgent):
 
         try:
             state = {"input": message}
-            final_state = self.graph.invoke(state)
+            final_state = await self.graph.ainvoke(state)
             ai_msg = final_state["output"]
             return {"messages": [ai_msg]}
 
@@ -75,25 +76,37 @@ class RAGAgent(BaseAgent):
 
 
 from qdrant_client import QdrantClient
-from langchain_openai import ChatOpenAI
-from langchain_qdrant import QdrantVectorStore
+from langchain_huggingface import HuggingFaceEmbeddings
+import asyncio
+import time 
 
-if __name__ == "__main__":
+async def main():
     qdrant_client = QdrantClient(url="http://localhost:6333")
+
     vectorstore = QdrantVectorStore(
         client=qdrant_client,
         collection_name="rag_collection",
-        embedding=None  
+        embedding=HuggingFaceEmbeddings(model_name="thanhtantran/Vietnamese_Embedding_v2")
     )
 
-    rag_agent = RAGAgent(vectorstore=vectorstore)
+    rag_agent = RAGAgent(
+        llm=None,  
+        vectorstore=vectorstore
+    )
 
-    user_question = "chuyển động thẳng đều là gì?"
+    user_question = "Hóa trị của nhôm là gì"
     message = HumanMessage(content=user_question)
+    start_time = time.time()
 
-    import asyncio
-    result = asyncio.run(rag_agent.invoke(message))
+    result = await rag_agent.invoke(message)
+    end_time = time.time()
+    elapsed_seconds = end_time - start_time
+    elapsed_minutes = elapsed_seconds / 60
 
-    print("\n==== 💬 Agent Response ====\n")
+
+    print(f"\n==== 💬 Agent Response ==== Processed in {elapsed_minutes:.2f} minutes ({elapsed_seconds:.2f} seconds).\n")
     for msg in result["messages"]:
         print(msg.content)
+
+if __name__ == "__main__":
+    asyncio.run(main())
