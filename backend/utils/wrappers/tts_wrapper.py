@@ -1,7 +1,7 @@
 from typing import IO
 from elevenlabs import ElevenLabs
 from io import BytesIO
-from core.config import Config
+from config.config import Config
 import logging
 
 

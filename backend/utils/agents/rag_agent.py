@@ -7,9 +7,10 @@ from langchain_core.vectorstores import VectorStoreRetriever
 
 from .base_agent import BaseAgent
 import logging
-from .prompts import get_RAG_system_prompt
+from config.prompts import get_RAG_system_prompt
 
 logger = logging.getLogger(__name__)
+
 
 class RAGAgent(BaseAgent):
     """Retrieval-Augmented Generation (RAG) Agent with LangGraph"""
@@ -21,7 +22,6 @@ class RAGAgent(BaseAgent):
         self.agent_type = "rag"
         self.agent_name = "RAG Agent"
         self.graph = self._build_workflow()
-
 
     def _build_workflow(self) -> Runnable:
         """Build LangGraph workflow for the RAG agent"""
@@ -45,7 +45,7 @@ class RAGAgent(BaseAgent):
                         f"Dưới đây là tài liệu tham khảo:\n{context}\n\n"
                         f"Dựa trên thông tin trên, hãy trả lời câu hỏi sau một cách rõ ràng và đầy đủ:\n{query}"
                     )
-                )
+                ),
             ]
             response = await self.llm.invoke(messages)
             state["output"] = response
@@ -78,7 +78,8 @@ class RAGAgent(BaseAgent):
 from qdrant_client import QdrantClient
 from langchain_huggingface import HuggingFaceEmbeddings
 import asyncio
-import time 
+import time
+
 
 async def main():
     qdrant_client = QdrantClient(url="http://localhost:6333")
@@ -86,13 +87,12 @@ async def main():
     vectorstore = QdrantVectorStore(
         client=qdrant_client,
         collection_name="rag_collection",
-        embedding=HuggingFaceEmbeddings(model_name="thanhtantran/Vietnamese_Embedding_v2")
+        embedding=HuggingFaceEmbeddings(
+            model_name="thanhtantran/Vietnamese_Embedding_v2"
+        ),
     )
 
-    rag_agent = RAGAgent(
-        llm=None,  
-        vectorstore=vectorstore
-    )
+    rag_agent = RAGAgent(llm=None, vectorstore=vectorstore)
 
     user_question = "Hóa trị của nhôm là gì"
     message = HumanMessage(content=user_question)
@@ -103,10 +103,12 @@ async def main():
     elapsed_seconds = end_time - start_time
     elapsed_minutes = elapsed_seconds / 60
 
-
-    print(f"\n==== 💬 Agent Response ==== Processed in {elapsed_minutes:.2f} minutes ({elapsed_seconds:.2f} seconds).\n")
+    print(
+        f"\n==== 💬 Agent Response ==== Processed in {elapsed_minutes:.2f} minutes ({elapsed_seconds:.2f} seconds).\n"
+    )
     for msg in result["messages"]:
         print(msg.content)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
