@@ -60,7 +60,7 @@ class RAGAgent(BaseAgent):
         builder.set_finish_point("generate")
         return builder.compile()
 
-    async def invoke(self, message: HumanMessage, chat_history: list[BaseMessage] = None) -> dict:
+    async def ainvoke(self, message: HumanMessage, chat_history: list[BaseMessage] = None) -> dict:
         if chat_history is None:
             chat_history = []
 
@@ -98,7 +98,7 @@ async def main():
     message = HumanMessage(content=user_question)
     start_time = time.time()
 
-    result = await rag_agent.invoke(message)
+    result = await rag_agent.ainvoke(message)
     end_time = time.time()
     elapsed_seconds = end_time - start_time
     elapsed_minutes = elapsed_seconds / 60
