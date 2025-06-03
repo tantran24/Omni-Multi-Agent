@@ -1,9 +1,9 @@
 from typing import Optional
-from core.graph import create_conversation_agent_graph
+from utils.graph_utils import create_conversation_agent_graph
 from utils.agents.conversation_agent import ConversationAgent
 import logging
 from langchain_core.runnables import RunnableConfig
-from stt.decode import run
+from utils.stt.decode import run
 from utils.wrappers.tts_wrapper import TTSWrapper
 
 logger = logging.getLogger(__name__)
@@ -52,11 +52,11 @@ class ConversationService:
             logger.error(f"Message processing error: {str(e)}")
             raise
 
-    def tts(self, text:str=""):
+    def tts(self, text: str = ""):
 
         return self.tts_model.invoke(text)
 
-    def stt(self, audio_path:str = None, data=None):
+    def stt(self, audio_path: str = None, data=None):
         try:
             result_stt = self.stt_model(long_form_audio=audio_path, data=data)
             return result_stt

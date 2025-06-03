@@ -5,7 +5,7 @@ import re
 from services.mcp_service import detach_mcp_service
 from .base_agent import BaseAgent
 from .tools import get_tools_for_agent, get_time_tool, generate_image_tool
-from .prompts import (
+from config.prompts import (
     get_router_prompt,
     get_assistant_agent_prompt,
     get_image_agent_prompt,
@@ -14,7 +14,7 @@ from .prompts import (
     get_planning_agent_prompt,
     get_conversation_assistant_agent_prompt,
 )
-from image_agent import ImageAgent
+from .image_agent import ImageAgent
 
 logger = logging.getLogger(__name__)
 
@@ -157,8 +157,6 @@ class PlanningAgent(BaseAgent):
 
     def get_system_prompt(self) -> str:
         return get_planning_agent_prompt()
-
-
 
 
 class ConversationAssistantAgent(BaseAgent):

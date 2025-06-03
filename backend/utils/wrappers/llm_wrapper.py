@@ -4,7 +4,7 @@ from typing import List
 from langchain_core.messages import BaseMessage
 from langchain_community.chat_models import ChatOllama
 from langchain_google_genai import ChatGoogleGenerativeAI
-from core.config import Config
+from config.config import Config
 import logging
 
 logger = logging.getLogger(__name__)

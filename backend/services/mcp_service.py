@@ -7,7 +7,7 @@ import asyncio
 
 logger = logging.getLogger(__name__)
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "mcp_config.json")
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "mcp_config.json")
 
 
 class MCPService:

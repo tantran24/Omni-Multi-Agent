@@ -1,5 +1,5 @@
 from typing import Optional
-from core.graph import create_agent_graph
+from utils.graph_utils import create_agent_graph
 from utils.agents.chat_agent import ChatAgent
 import logging
 from langchain_core.runnables import RunnableConfig
