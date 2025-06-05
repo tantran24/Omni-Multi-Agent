@@ -18,7 +18,7 @@ class RAGAgent(BaseAgent):
     def __init__(self, vectorstore: QdrantVectorStore, llm=None):
         super().__init__(llm)
         self.vectorstore = vectorstore
-        self.retriever = self.vectorstore.as_retriever()
+        self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 6})
         self.agent_type = "rag"
         self.agent_name = "RAG Agent"
         self.graph = self._build_workflow()
@@ -94,20 +94,26 @@ async def main():
 
     rag_agent = RAGAgent(llm=None, vectorstore=vectorstore)
 
-    user_question = "Hóa trị của nhôm là gì"
-    message = HumanMessage(content=user_question)
-    start_time = time.time()
+    # user_question = "cách thực hiện bài thực hành khảo sát chuyển động rơi tự do"
+    while True:
+        print("\n====> User Input:")
+        user_question = input()
+        if user_question == "q":
+            break
+        message = HumanMessage(content=user_question)
+        start_time = time.time()
 
-    result = await rag_agent.ainvoke(message)
-    end_time = time.time()
-    elapsed_seconds = end_time - start_time
-    elapsed_minutes = elapsed_seconds / 60
-
-    print(
-        f"\n==== 💬 Agent Response ==== Processed in {elapsed_minutes:.2f} minutes ({elapsed_seconds:.2f} seconds).\n"
-    )
-    for msg in result["messages"]:
-        print(msg.content)
+        print("\nChatbot: ...")
+        result = await rag_agent.ainvoke(message)
+        end_time = time.time()
+        elapsed_seconds = end_time - start_time
+        elapsed_minutes = elapsed_seconds / 60
+        print("\n=============================================================================")
+        print(
+            f"\n====>>> Chatbot Response ==== Processed in {elapsed_minutes:.2f} minutes ({elapsed_seconds:.2f} seconds).\n"
+        )
+        for msg in result["messages"]:
+            print(msg.content)
 
 
 if __name__ == "__main__":
