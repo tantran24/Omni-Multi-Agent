@@ -13,15 +13,13 @@ from typing import Optional
 from datetime import datetime
 from diffusers import EulerDiscreteScheduler
 from diffusers.utils import load_image
-# from photomaker import PhotoMakerStableDiffusionXLPipeline
 
 from google import genai
 from google.genai import types
 
-from core.config import Config
+from config.config import Config
 
 logger = logging.getLogger(__name__)
-
 
 
 class ImageGeneratorWrapper:
@@ -34,8 +32,6 @@ class ImageGeneratorWrapper:
             self._init_diffusers()
         elif self.provider == "google_ai_studio":
             self._init_google_ai_studio()
-        # elif self.provider == "photomaker":
-        #     self._init_photomaker()
         else:
             raise ValueError(f"Unknown image generation provider: {self.provider}")
 
@@ -55,7 +51,9 @@ class ImageGeneratorWrapper:
         pipe.load_lora_weights(lora_path)
         pipe.fuse_lora(lora_scale=1.0)
 
-        if self.device == "cuda" and hasattr(pipe, "enable_xformers_memory_efficient_attention"):
+        if self.device == "cuda" and hasattr(
+            pipe, "enable_xformers_memory_efficient_attention"
+        ):
             pipe.enable_xformers_memory_efficient_attention()
 
         scheduler_config = pipe.scheduler.config
@@ -70,36 +68,6 @@ class ImageGeneratorWrapper:
     def _init_google_ai_studio(self):
         logger.info("Initializing Google AI Studio API...")
         self.model = genai.Client()
-
-    # def _init_photomaker(self):
-    #     logger.info("Initializing PhotoMaker pipeline...")
-
-    #     photomaker_ckpt_path = hf_hub_download(
-    #         repo_id="TencentARC/PhotoMaker",
-    #         filename="photomaker-v1.bin",
-    #         repo_type="model"
-    #     )
-    #     base_model_path = "stabilityai/stable-diffusion-xl-base-1.0"
-
-    #     pipe = PhotoMakerStableDiffusionXLPipeline.from_pretrained(
-    #         base_model_path,
-    #         torch_dtype=torch.bfloat16 if self.device == "cuda" else torch.float32,
-    #         use_safetensors=True,
-    #         variant="fp16" if self.device == "cuda" else None,
-    #     ).to(self.device)
-
-    #     pipe.load_photomaker_adapter(
-    #         os.path.dirname(photomaker_ckpt_path),
-    #         subfolder="",
-    #         weight_name=os.path.basename(photomaker_ckpt_path),
-    #         trigger_word="img"
-    #     )
-
-    #     pipe.scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config)
-    #     pipe.fuse_lora()
-
-    #     self.model = pipe
-    #     self.load_image = load_image
 
     def generate(self, prompt: str, **kwargs) -> Image.Image:
         if self.provider == "diffusers":
@@ -120,7 +88,6 @@ class ImageGeneratorWrapper:
             height=512,
         ).images[0]
 
-
     def _generate_google(self, prompt: str) -> Image.Image:
         contents = [
             types.Content(
@@ -130,12 +97,11 @@ class ImageGeneratorWrapper:
         ]
 
         config = types.GenerateContentConfig(
-            response_modalities=["TEXT", "IMAGE"],
-            response_mime_type="text/plain"
+            response_modalities=["TEXT", "IMAGE"], response_mime_type="text/plain"
         )
 
         response = self.model.models.generate_content(
-            model=Config.GOOGLE_IMAGE_GENERATOR_MODEL, 
+            model=Config.GOOGLE_IMAGE_GENERATOR_MODEL,
             contents=contents,
             config=config,
         )
@@ -145,33 +111,8 @@ class ImageGeneratorWrapper:
                 print(part.text)
             elif part.inline_data is not None:
                 image = Image.open(BytesIO(part.inline_data.data))
-                # The ImageAgent is responsible for saving the image.
                 # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                # image.save(f"generated_google_image_{timestamp}.png")
+                # image.save(f"generated_image/generated_image_{timestamp}.png")
                 return image
 
         raise RuntimeError("No image found in Gemini response.")
-
-    # def _generate_photomaker(self, prompt: str, reference_dir: str, seed: int = 42, num_steps: int = 25) -> Image.Image:
-    #     image_paths = sorted([
-    #         os.path.join(reference_dir, f) for f in os.listdir(reference_dir)
-    #         if f.lower().endswith(('.png', '.jpg', '.jpeg'))
-    #     ])
-    #     if not image_paths:
-    #         raise ValueError("No valid image files found in reference directory.")
-
-    #     input_id_images = [self.load_image(p) for p in image_paths]
-
-    #     full_prompt = f"{prompt} img"
-    #     negative_prompt = "(asymmetry, worst quality, low quality, illustration, 3d, 2d, painting, cartoons, sketch), open mouth, grayscale"
-
-    #     generator = torch.Generator(device=self.device).manual_seed(seed)
-    #     return self.model(
-    #         prompt=full_prompt,
-    #         input_id_images=input_id_images,
-    #         negative_prompt=negative_prompt,
-    #         num_images_per_prompt=1,
-    #         num_inference_steps=num_steps,
-    #         start_merge_step=10,
-    #         generator=generator,
-    #     ).images[0]

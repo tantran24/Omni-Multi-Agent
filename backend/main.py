@@ -3,11 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from utils.api.endpoints import router
-from core.config import Config
+from config.config import Config
 import os
 import logging
 from services.mcp_service import detach_mcp_service
-from core.mcp_initializer import apply_mcp_fixes
+from mcp_core.mcp_initializer import apply_mcp_fixes
 from contextlib import asynccontextmanager
 
 logging.basicConfig(level=logging.INFO)
@@ -49,27 +49,28 @@ app.add_middleware(
 )
 
 # Ensure necessary directories exist
-os.makedirs("generated_images", exist_ok=True)
-os.makedirs("uploaded_files", exist_ok=True)
-os.makedirs("stt", exist_ok=True)
-os.makedirs("audioUpload", exist_ok=True)
+os.makedirs(Config.GENERATED_IMAGES_DIR, exist_ok=True)
+os.makedirs(Config.UPLOADED_FILES_DIR, exist_ok=True)
+os.makedirs("utils/stt", exist_ok=True)
+os.makedirs(Config.AUDIO_UPLOAD_DIR, exist_ok=True)
 
 # Mount static directories
 app.mount(
     "/generated_images",
-    StaticFiles(directory="generated_images"),
+    StaticFiles(directory=Config.GENERATED_IMAGES_DIR),
     name="generated_images",
 )
 app.mount(
     "/uploaded_files",
-    StaticFiles(directory="uploaded_files"),
+    StaticFiles(directory=Config.UPLOADED_FILES_DIR),
     name="uploaded_files",
 )
 app.mount(
     "/stt",
-    StaticFiles(directory="stt"),
+    StaticFiles(directory="utils/stt"),
     name="stt",
 )
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

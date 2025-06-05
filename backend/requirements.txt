@@ -27,8 +27,12 @@ accelerate
 omegaconf
 insightface==0.7.3
 
-git+https://github.com/TencentARC/PhotoMaker.git
-
-
+# git+https://github.com/TencentARC/PhotoMaker.git
+langchain-huggingface 
+sentence-transformers
 google-genai
-
+qdrant-client
+langchain_qdrant
+# pymupdf
+# pdfminer.six
+docling

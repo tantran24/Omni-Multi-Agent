@@ -21,8 +21,9 @@ import torch
 from services.mcp_service import detach_mcp_service
 import datetime
 from utils.api.pdf_reader import router as pdf_router
+from config.config import Config
 
-from stt.decode import run
+from utils.stt.decode import run
 
 logger = logging.getLogger(__name__)
 
@@ -76,31 +77,30 @@ async def chat_with_image(
     """
     Process a chat message with an uploaded image/document and return a response
     """
-    try:
-        # Create directory for uploaded files if it doesn't exist
-        os.makedirs("uploaded_files", exist_ok=True)
-        
+    try:  # Create directory for uploaded files if it doesn't exist
+        os.makedirs(Config.UPLOADED_FILES_DIR, exist_ok=True)
+
         # Generate a unique filename with extension
         file_extension = os.path.splitext(image.filename)[1].lower()
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         unique_filename = f"file_{timestamp}{file_extension}"
-        file_path = f"uploaded_files/{unique_filename}"
-        
+        file_path = os.path.join(Config.UPLOADED_FILES_DIR, unique_filename)
+
         # Save the uploaded file
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
-        
+
         # Create public URL for the file
         file_url = f"/uploaded_files/{unique_filename}"
-        
+
         # Determine file type
         content_type = image.content_type or ""
-        
+
         if "pdf" in content_type or file_extension == ".pdf":
             file_type = "pdf"
         else:
             file_type = "image"
-            
+
         # Create message with file info
         message = text.strip()
         if not message:
@@ -108,13 +108,15 @@ async def chat_with_image(
                 message = f"I've uploaded this PDF document. Can you help me analyze it? {file_url}"
             else:
                 message = "I've uploaded this image. Can you describe what you see?"
-        
+
         # Process the message
         response = await llm_service.process_message(message)
-        
+
         if not response:
-            raise HTTPException(status_code=500, detail="Empty response from LLM service")
-        
+            raise HTTPException(
+                status_code=500, detail="Empty response from LLM service"
+            )
+
         # Check for image in response
         image_url = None
         img_match = re.search(
@@ -124,16 +126,16 @@ async def chat_with_image(
             image_url = img_match.group(1)
             response = re.sub(r"!\[Generated Image\]\([^)]+\)", "", response)
             response = response.strip()
-        
+
         # If no image was generated but we have a file, include the file URL
         if not image_url and file_url:
             image_url = file_url
-        
+
         if background_tasks:
             background_tasks.add_task(ensure_llm_service_ready)
-        
+
         return ChatResponse(response=response, image=image_url)
-        
+
     except Exception as e:
         logger.error(f"Error in chat_with_image: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -150,8 +152,8 @@ async def ensure_llm_service_ready():
 @router.post("/transcribe")
 async def transcribe(audio: UploadFile = File(...)):
 
-    temp_file_path = f"audioUpload/{audio.filename}"
-    print(os.path.isdir("audioUpload"))
+    temp_file_path = f"{Config.AUDIO_UPLOAD_DIR}/{audio.filename}"
+    print(os.path.isdir(Config.AUDIO_UPLOAD_DIR))
     with open(temp_file_path, "wb") as buffer:
         shutil.copyfileobj(audio.file, buffer)
 
@@ -265,15 +267,18 @@ async def read_pdf(pdf_path: str):
     """
     try:
         import PyPDF2
-        
+
         # Make sure the path starts from the proper location
         if pdf_path.startswith("/uploaded_files/"):
-            pdf_path = pdf_path.replace("/uploaded_files/", "uploaded_files/")
-        
+            filename = pdf_path.replace("/uploaded_files/", "")
+            pdf_path = os.path.join(Config.UPLOADED_FILES_DIR, filename)
+
         # Check if file exists
         if not os.path.exists(pdf_path):
-            raise HTTPException(status_code=404, detail=f"PDF file not found: {pdf_path}")
-        
+            raise HTTPException(
+                status_code=404, detail=f"PDF file not found: {pdf_path}"
+            )
+
         # Open and read the PDF file
         pdf_text = ""
         with open(pdf_path, "rb") as file:
@@ -282,17 +287,20 @@ async def read_pdf(pdf_path: str):
                 page = reader.pages[page_num]
                 pdf_text += f"\n\n--- Page {page_num + 1} ---\n\n"
                 pdf_text += page.extract_text()
-        
+
         return {"text": pdf_text}
-        
+
     except ImportError:
         return JSONResponse(
-            status_code=500, 
-            content={"detail": "PyPDF2 package not installed. Please install it with 'pip install PyPDF2'"}
+            status_code=500,
+            content={
+                "detail": "PyPDF2 package not installed. Please install it with 'pip install PyPDF2'"
+            },
         )
     except Exception as e:
         logger.error(f"Error reading PDF: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # Include PDF router
 router.include_router(pdf_router, prefix="/pdf")
