@@ -103,7 +103,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "omni-multi-agent-backend",
-        "version": "1.0.0"
+        "version": "1.0.0",
     }
 
 

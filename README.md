@@ -1,131 +1,296 @@
-# Omni-Multi-Agent
+# 🚀 Omni Multi-Agent System
 
-Omni-Multi-Agent is an advanced AI system that combines multiple specialized AI agents to handle a wide range of tasks through a single interface. The project uses a multi-agent architecture powered by LangGraph and Ollama to create a versatile assistant that can handle conversations, generate images, search the web, and more.
+[![GitHub release](https://img.shields.io/github/release/tantran24/Omni-Multi-Agent.svg)](https://github.com/tantran24/Omni-Multi-Agent/releases)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/docker-supported-blue.svg)](docker-compose.yml)
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)](https://reactjs.org)
 
-## Overview
+> **Advanced AI Multi-Agent System with Persistent Memory, Real-time Chat, and Specialized Agent Coordination**
 
-This project integrates various AI capabilities including:
+Omni Multi-Agent is a cutting-edge AI system that orchestrates multiple specialized AI agents through an intelligent routing system. Built with enterprise-grade architecture, it provides seamless integration of conversational AI, image generation, web search, and document processing capabilities with persistent session management.
 
-- Conversational AI using large language models
-- Speech-to-text and text-to-speech conversion
-- Image generation using Stable Diffusion
-- Web searching
-- Mathematical problem solving
-- Planning and task breakdown
+---
 
-The architecture consists of a Python FastAPI backend that coordinates the various agents and a React frontend that provides a chat interface for users.
+## 🌟 Key Features
 
-## Features
+### 🧠 **Multi-Agent Architecture**
 
-- **Multi-Agent Coordination**: A router agent routes user requests to specialized agents
-- **Specialized Agents**:
-  - Research Agent: For information gathering and facts
-  - Math Agent: For calculations and equations
-  - Assistant Agent: For general conversation and coordination
-  - Planning Agent: For breaking down complex tasks
-  - Image Agent: For generating images from text descriptions
-  - Web Search Agent: For searching the internet
-  - Time Agent: For providing current time information
-- **Tools**:
-  - Image Generation: Creates images from text descriptions
-  - Web Search: Finds information online
-  - Time: Provides the current time
-- **Responsive UI**: A clean, modern chat interface built with React
+- **Intelligent Router**: Automatically routes requests to the most suitable agent
+- **Specialized Agents**: Research, Math, Planning, Image Generation, and more
+- **Agent Coordination**: Seamless handoffs and collaborative problem-solving
 
-## Architecture
+### 💾 **Persistent Memory System**
 
-The system is built with:
+- **Session Management**: Maintain conversation context across sessions
+- **Message History**: Full conversation persistence with SQLAlchemy
+- **Context Retrieval**: Smart context loading for enhanced responses
 
-- **Backend**: Python with FastAPI
-- **Frontend**: React with styled-components
-- **AI Framework**: LangChain and LangGraph for agent orchestration
-- **LLM Provider**: Ollama for local LLM inference
-- **Image Generation**: Stable Diffusion XL via Hugging Face
+### 🎨 **Advanced Capabilities**
 
-## Installation Guide
+- **Image Generation**: High-quality image creation with Stable Diffusion XL
+- **Document Processing**: PDF analysis and content extraction
+- **Web Search**: Real-time web information retrieval
+- **Speech Integration**: Text-to-speech and speech-to-text support
 
-### Prerequisites
+### 🌐 **Modern Tech Stack**
 
-- Python 3.9+
-- Node.js and npm
-- Ollama (for local LLM inference)
-- CUDA-capable GPU (recommended for image generation)
+- **Backend**: FastAPI with async/await support
+- **Frontend**: React with modern UI components
+- **Database**: SQLAlchemy with async ORM
+- **Vector DB**: Qdrant for semantic search
+- **AI Framework**: LangGraph + LangChain for agent orchestration
 
-### Backend Setup
+---
 
-1. Clone the repository:
+## 🚀 Quick Start
+
+### Option 1: Docker Deployment (Recommended)
 
 ```bash
+# Clone the repository
 git clone https://github.com/tantran24/Omni-Multi-Agent.git
 cd Omni-Multi-Agent
+
+# Start all services with Docker Compose
+docker-compose up -d
+
+# Access the application
+# Frontend: http://localhost
+# Backend API: http://localhost:8000
+# API Documentation: http://localhost:8000/docs
 ```
 
-2. Install Python dependencies:
+### Option 2: Manual Installation
+
+#### Prerequisites
+
+- Python 3.11+
+- Node.js 18+
+- Ollama
+- Git
+
+#### Backend Setup
 
 ```bash
+# Navigate to backend directory
 cd backend
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Initialize database
+python init_db.py
+
+# Start the server
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-3. Install and start Ollama:
-
-   - Download from [Ollama's website](https://ollama.ai)
-   - Install and run the application
-
-4. Pull the required model:
+#### Frontend Setup
 
 ```bash
-ollama pull PetrosStav/gemma3-tools:4b
-```
-
-5. Run the backend server:
-
-```bash
-cd backend
-uvicorn main:app --reload
-```
-
-The server will start on http://localhost:8000
-
-### Frontend Setup
-
-1. Install Node.js dependencies:
-
-```bash
+# Navigate to frontend directory
 cd frontend
+
+# Install dependencies
 npm install
-```
 
-2. Start the development server:
-
-```bash
+# Start development server
 npm run dev
 ```
 
-The frontend will be available at http://localhost:3000
+#### Ollama Setup
 
-## Usage
+```bash
+# Install Ollama (if not already installed)
+curl -fsSL https://ollama.ai/install.sh | sh
 
-1. Open your browser and navigate to http://localhost:3000
-2. Type a message in the input box and press Enter or click Send
-3. The system will route your request to the appropriate agent and respond accordingly
-4. For image generation, include words like "draw", "create image", or "visualize" in your prompt
-5. For web searches, start your message with "search for" or similar phrases
+# Pull required models
+ollama pull llama2
+ollama pull gemma:2b
+```
 
-## Current Tools and Capabilities
+---
 
-The current version includes:
+## 📱 Usage Guide
 
-- **Language Model Integration**: Using Ollama for local LLM inference
-- **Image Generation**: Stable Diffusion XL with optimized inference
-- **Speech-to-Text/Text-to-Speech**: Basic functionality included
-- **Web Search**: Simple web search functionality
-- **Multi-Agent Routing**: Intelligent request routing to specialized agents
+### Basic Chat Interaction
 
-## Upcoming Features
+1. **Start a Conversation**: Open the app and type your message
+2. **Session Management**: Your conversations are automatically saved
+3. **Switch Sessions**: Use the session manager to navigate between chats
+4. **Persistent History**: All messages are preserved across browser sessions
 
-- Audio file processing
-- Document analysis and summarization
-- Voice interaction improvements
-- Code execution and development tools
-- Enhanced memory and conversation history
+### Advanced Features
+
+#### Image Generation
+
+```
+Generate an image of a futuristic city at sunset
+Create a logo for a tech startup
+Draw a cute cartoon cat wearing a spacesuit
+```
+
+#### Document Analysis
+
+- Upload PDF files for analysis and Q&A
+- Extract key information from documents
+- Summarize long documents
+
+#### Web Search
+
+```
+Search for the latest news about artificial intelligence
+Find information about climate change solutions
+Look up the current stock price of Tesla
+```
+
+#### Mathematical Problem Solving
+
+```
+Solve the equation: 2x + 5 = 15
+Calculate the derivative of x^2 + 3x + 2
+What is the area of a circle with radius 5?
+```
+
+---
+
+## 🛠️ Development Guide
+
+### Project Structure
+
+```
+Omni-Multi-Agent/
+├── backend/                 # FastAPI backend
+│   ├── services/           # Core business logic
+│   ├── utils/             # Utilities and agents
+│   ├── config/            # Configuration files
+│   ├── database/          # Database models and migrations
+│   └── main.py           # Application entry point
+├── frontend/              # React frontend
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   ├── services/      # API services
+│   │   └── utils/        # Frontend utilities
+│   └── public/           # Static assets
+├── docker-compose.yml     # Docker orchestration
+└── README.md             # This file
+```
+
+### API Documentation
+
+The backend provides comprehensive API documentation:
+
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+- **OpenAPI Schema**: http://localhost:8000/openapi.json
+
+---
+
+## 🎯 Specialized Agents
+
+### 🤖 Chat Agent
+
+- General conversation handling
+- Context-aware responses
+- Memory integration
+
+### 🎨 Image Agent
+
+- Text-to-image generation
+- Style and quality optimization
+- Multiple format support
+
+### 📚 RAG Agent
+
+- Document Q&A
+- Semantic search
+- Context extraction
+
+### 🔍 Research Agent
+
+- Web search integration
+- Information synthesis
+- Fact verification
+
+### 📊 Planning Agent
+
+- Task breakdown
+- Project planning
+- Goal-oriented assistance
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+```bash
+# Backend Configuration
+OLLAMA_BASE_URL=http://localhost:11434
+HUGGINGFACE_API_KEY=your_hf_api_key
+DATABASE_URL=sqlite:///./database/app.db
+
+# Frontend Configuration
+VITE_API_URL=http://localhost:8000
+```
+
+### Customization
+
+The system is highly configurable through:
+
+- `backend/config/config.py` - Backend settings
+- `frontend/.env` - Frontend environment variables
+- `backend/config/prompts.py` - Agent prompts and behaviors
+
+---
+
+## 🔒 Security Features
+
+- CORS protection configured
+- Input validation and sanitization
+- Secure file upload handling
+- Environment-based configuration
+- Docker security best practices
+
+---
+
+## 🤝 Community & Support
+
+### Getting Help
+
+- 📖 [Documentation](docs/)
+- 💬 [Discussions](https://github.com/tantran24/Omni-Multi-Agent/discussions)
+- 🐛 [Issue Tracker](https://github.com/tantran24/Omni-Multi-Agent/issues)
+
+### Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🏆 Acknowledgments
+
+- **LangChain Team** for the amazing agent framework
+- **FastAPI** for the high-performance web framework
+- **React Community** for the frontend ecosystem
+- **Ollama** for local LLM infrastructure
+- **Hugging Face** for AI model hosting
+
+---
+
+<div align="center">
+
+**Made with ❤️ by the Omni Multi-Agent Team**
+
+[⭐ Star this project](https://github.com/tantran24/Omni-Multi-Agent) if you find it helpful!
+
+</div>
