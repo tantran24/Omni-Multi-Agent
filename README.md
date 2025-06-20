@@ -1,6 +1,5 @@
 # 🚀 Omni Multi-Agent System
 
-[![GitHub release](https://img.shields.io/github/release/tantran24/Omni-Multi-Agent.svg)](https://github.com/tantran24/Omni-Multi-Agent/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/docker-supported-blue.svg)](docker-compose.yml)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com)
