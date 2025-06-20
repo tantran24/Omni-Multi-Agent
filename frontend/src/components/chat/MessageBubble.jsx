@@ -347,10 +347,10 @@ const MessageBubble = ({
               markdownComponents={markdownComponents}
               speed={20}
             />
-          )}
+          )}{" "}
           {fileType === "pdf" && fileName && (
-            <div className="mt-3">
-              <div className="flex items-center gap-2 p-2.5 border border-[var(--border)] rounded-lg bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 transition-colors">
+            <div className="mt-3 flex justify-center w-full">
+              <div className="flex items-center gap-2 p-2.5 border border-[var(--border)] rounded-lg bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 transition-colors w-full">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="20"
@@ -378,12 +378,12 @@ const MessageBubble = ({
             <div className="mt-2">
               {" "}
               {isPdfUrl(image) ? (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 w-full">
                   <a
                     href={image}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 p-2.5 border border-[var(--border)] rounded-lg hover:bg-[var(--accent)] transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+                    className="flex items-center gap-2 p-2.5 border border-[var(--border)] rounded-lg hover:bg-[var(--accent)] transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] w-full justify-center"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

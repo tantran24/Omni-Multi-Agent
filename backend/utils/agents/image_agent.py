@@ -8,13 +8,15 @@ import logging
 from langchain_core.messages import AIMessage
 from utils.wrappers.image_generator_wrapper import ImageGeneratorWrapper
 from config.config import Config
+from .memory_mixin import MemoryMixin
 
 
 logger = logging.getLogger(__name__)
 
 
-class ImageAgent:
+class ImageAgent(MemoryMixin):
     def __init__(self, provider="google_ai_studio"):
+        super().__init__()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = ImageGeneratorWrapper(provider=provider, device=self.device)
         self.images_dir = Config.GENERATED_IMAGES_DIR
@@ -32,11 +34,30 @@ class ImageAgent:
         """
         try:
             prompt = message.content if hasattr(message, "content") else str(message)
+
+            # Save user request if memory is enabled
+            if self._memory_enabled:
+                await self.initialize_session()
+                await self.save_message(
+                    "user", f"Generate image: {prompt}", message_type="image_request"
+                )
+
             result = self.generate_image(prompt)
 
             response_message = (
                 f"I've generated an image based on your request: {prompt}"
             )
+
+            # Save response if memory is enabled
+            if self._memory_enabled:
+                await self.save_message(
+                    "assistant",
+                    response_message,
+                    message_type="image_response",
+                    metadata={"image_url": result["image_url"], "prompt": prompt},
+                    agent_type="ImageAgent",
+                )
+
             return {
                 "messages": [AIMessage(content=response_message)],
                 "artifacts": {"generate_image": result["image_url"]},
@@ -46,6 +67,16 @@ class ImageAgent:
             error_message = (
                 f"Sorry, I encountered an error generating the image: {str(e)}"
             )
+
+            # Save error if memory is enabled
+            if self._memory_enabled:
+                await self.save_message(
+                    "assistant",
+                    error_message,
+                    message_type="error",
+                    agent_type="ImageAgent",
+                )
+
             return {
                 "messages": [AIMessage(content=error_message)],
                 "artifacts": {},

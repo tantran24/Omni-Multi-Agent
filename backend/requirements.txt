@@ -36,3 +36,8 @@ langchain_qdrant
 # pymupdf
 # pdfminer.six
 docling
+sqlalchemy
+aiosqlite
+alembic
+asyncpg
+python-dateutil

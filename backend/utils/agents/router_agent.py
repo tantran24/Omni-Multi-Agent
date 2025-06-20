@@ -4,6 +4,7 @@ import logging
 import re
 from services.mcp_service import detach_mcp_service
 from .base_agent import BaseAgent
+from .memory_mixin import MemoryMixin
 from .tools import get_tools_for_agent, get_time_tool, generate_image_tool
 from config.prompts import (
     get_router_prompt,
@@ -19,11 +20,12 @@ from .image_agent import ImageAgent
 logger = logging.getLogger(__name__)
 
 
-class RouterAgent(BaseAgent):
+class RouterAgent(BaseAgent, MemoryMixin):
     """Router agent that directs messages to specialized agents"""
 
     def __init__(self):
         super().__init__()
+        MemoryMixin.__init__(self)
         self.agent_type = "router"
         self.agent_name = "Router Agent"
 

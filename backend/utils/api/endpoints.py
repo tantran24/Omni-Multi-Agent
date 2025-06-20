@@ -21,6 +21,7 @@ import torch
 from services.mcp_service import detach_mcp_service
 import datetime
 from utils.api.pdf_reader import router as pdf_router
+from utils.api.memory_endpoints import router as memory_router
 from config.config import Config
 
 from utils.stt.decode import run
@@ -34,22 +35,31 @@ conversation_service = ConversationService()
 
 class ChatMessage(BaseModel):
     message: str
+    session_id: Optional[str] = Field(
+        default=None, description="Session ID for conversation context"
+    )
 
 
 class ChatResponse(BaseModel):
     response: str
     image: Optional[str] = Field(default=None)
+    session_id: Optional[str] = Field(
+        default=None, description="Session ID used for this conversation"
+    )
 
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(chat_message: ChatMessage, background_tasks: BackgroundTasks):
     """
-    Process a chat message and return a response from the appropriate agent
+    Process a chat message and return a response from the appropriate agent with session management
     """
     if not chat_message.message or not chat_message.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
-    response = await llm_service.process_message(chat_message.message)
+    # Process with session support
+    response = await llm_service.process_message(
+        chat_message.message, session_id=chat_message.session_id
+    )
 
     if not response:
         raise HTTPException(status_code=500, detail="Empty response from LLM service")
@@ -65,17 +75,23 @@ async def chat(chat_message: ChatMessage, background_tasks: BackgroundTasks):
 
     background_tasks.add_task(ensure_llm_service_ready)
 
-    return ChatResponse(response=response, image=image_url)
+    # Get current session ID for response
+    current_session_id = llm_service.get_current_session_id()
+
+    return ChatResponse(
+        response=response, image=image_url, session_id=current_session_id
+    )
 
 
 @router.post("/chat-with-image", response_model=ChatResponse)
 async def chat_with_image(
     text: str = Form(""),
     image: UploadFile = File(...),
+    session_id: str = Form(None),
     background_tasks: BackgroundTasks = None,
 ):
     """
-    Process a chat message with an uploaded image/document and return a response
+    Process a chat message with an uploaded image/document and return a response with session support
     """
     try:  # Create directory for uploaded files if it doesn't exist
         os.makedirs(Config.UPLOADED_FILES_DIR, exist_ok=True)
@@ -107,10 +123,8 @@ async def chat_with_image(
             if file_type == "pdf":
                 message = f"I've uploaded this PDF document. Can you help me analyze it? {file_url}"
             else:
-                message = "I've uploaded this image. Can you describe what you see?"
-
-        # Process the message
-        response = await llm_service.process_message(message)
+                message = "I've uploaded this image. Can you describe what you see?"  # Process the message with session support
+        response = await llm_service.process_message(message, session_id=session_id)
 
         if not response:
             raise HTTPException(
@@ -125,16 +139,21 @@ async def chat_with_image(
         if img_match:
             image_url = img_match.group(1)
             response = re.sub(r"!\[Generated Image\]\([^)]+\)", "", response)
-            response = response.strip()
-
-        # If no image was generated but we have a file, include the file URL
+            response = (
+                response.strip()
+            )  # If no image was generated but we have a file, include the file URL
         if not image_url and file_url:
             image_url = file_url
 
         if background_tasks:
             background_tasks.add_task(ensure_llm_service_ready)
 
-        return ChatResponse(response=response, image=image_url)
+        # Get current session ID for response
+        current_session_id = llm_service.get_current_session_id()
+
+        return ChatResponse(
+            response=response, image=image_url, session_id=current_session_id
+        )
 
     except Exception as e:
         logger.error(f"Error in chat_with_image: {str(e)}")
@@ -304,3 +323,4 @@ async def read_pdf(pdf_path: str):
 
 # Include PDF router
 router.include_router(pdf_router, prefix="/pdf")
+router.include_router(memory_router, prefix="/memory", tags=["Memory Management"])

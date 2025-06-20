@@ -63,11 +63,10 @@ const Conversation = ({ handleCloseWindow }) => {
       );
     }
   }, [lastMessage, handlePlaybackEnd]);
-
   const toggleMic = () => {
     const turningOn = !onMic;
     setOnMic(turningOn);
-    setDisplayedTurn(turningOn ? "Turn off Mic" : "Turn on Mic");
+    setDisplayedTurn(turningOn ? "Mute" : "Unmute");
 
     if (turningOn) {
       vad.start();
@@ -88,23 +87,17 @@ const Conversation = ({ handleCloseWindow }) => {
   const [showDebug, setShowDebug] = useState(false);
 
   return (
-    <div
-      className="relative w-full h-screen bg-white overflow-hidden flex flex-col items-center justify-center text-white font-sans p-4"
-      style={{
-        background: "linear-gradient(135deg, #2b3247 0%, #1c202d 100%)",
-      }}
-    >
+    <div className="relative w-full h-screen overflow-hidden flex flex-col items-center justify-center font-sans p-4 bg-[var(--background)] text-[var(--foreground)]">
       {/* Example gradient */}
-      {/* Status */}
-      <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-black/40 px-4 py-1.5 rounded-full text-sm z-10 text-center backdrop-blur-sm shadow-lg">
-        <p>Trạng thái: {connectionStatus}</p>
-        {/* Sử dụng state UI để hiển thị */}
+      {/* Status */}{" "}
+      <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-[var(--background)]/90 border border-[var(--border)] px-4 py-1.5 rounded-full text-sm z-10 text-center backdrop-blur-sm shadow-lg text-[var(--foreground)]">
+        <p>Status: {connectionStatus}</p>
         {isPausedForPlaybackUI && (
-          <p className="text-blue-300 animate-pulse">Đang phát âm thanh...</p>
+          <p className="text-blue-500 animate-pulse">Playing audio...</p>
         )}
         {vad.errored && (
-          <p className="text-red-400 flex items-center justify-center gap-1 font-medium">
-            <AlertCircle size={16} /> Lỗi Mic: {vad.errored.message}
+          <p className="text-red-500 flex items-center justify-center gap-1 font-medium">
+            <AlertCircle size={16} /> Mic Error: {vad.errored.message}
           </p>
         )}
       </div>
@@ -128,61 +121,61 @@ const Conversation = ({ handleCloseWindow }) => {
           />
           {/* Adjusted size and added alt */}
         </div>{" "}
-        <h2 className="text-2xl font-semibold mb-1 text-gray-100">
-          Bot Tương Tác
+        <h2 className="text-2xl font-semibold mb-1 text-[var(--foreground)]">
+          Interactive Bot
         </h2>
         {/* Example Name */}{" "}
-        <p className="text-sm text-zinc-400">Đang trong cuộc gọi...</p>
+        <p className="text-sm text-[var(--muted-foreground)]">In call...</p>
         {/* Example Status */}
       </div>
-      {/* Controls */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-5 sm:gap-6 bg-zinc-800/70 backdrop-blur-md p-3 sm:p-4 rounded-full z-30 shadow-xl">
+      {/* Controls */}{" "}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-5 sm:gap-6 bg-[var(--background)] border border-[var(--border)] backdrop-blur-md p-3 sm:p-4 rounded-full z-30 shadow-xl">
         <button
-          title={onMic ? "Tắt tiếng" : "Bật tiếng"}
+          title={onMic ? "Mute" : "Unmute"}
           className={`
                             group relative rounded-full w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center cursor-pointer
                             transition-all duration-200 ease-in-out transform active:scale-90
                             disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100
-                            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:ring-blue-500
+                            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--background)] focus:ring-blue-500
                             ${
                               onMic
-                                ? "bg-zinc-600/80 text-white hover:bg-zinc-500/90"
-                                : "bg-gray-300 text-zinc-800 hover:bg-gray-400"
+                                ? "bg-[var(--accent)] text-[var(--accent-foreground)] hover:bg-[var(--accent)]/90"
+                                : "bg-[var(--secondary)] text-[var(--secondary-foreground)] hover:bg-[var(--secondary)]/90"
                             }
                         `}
           onClick={toggleMic}
           disabled={!isConnected || isPausedForPlaybackUI}
-          aria-label={onMic ? "Tắt tiếng micro" : "Bật tiếng micro"}
+          aria-label={onMic ? "Mute microphone" : "Unmute microphone"}
         >
           {onMic ? <Mic size={iconSize} /> : <MicOff size={iconSize} />}
         </button>
 
         <button
-          title="Kết thúc cuộc gọi"
+          title="End call"
           className="
                             group relative bg-red-600 text-white rounded-full w-14 h-14 sm:w-16 sm:h-16
                             flex items-center justify-center cursor-pointer
                             transition-all duration-200 ease-in-out hover:bg-red-700 transform active:scale-90
                             disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100
-                            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:ring-red-500
+                            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--background)] focus:ring-red-500
                         "
-          onClick={endCall} // Gọi hàm endCall thay vì handleCloseWindow trực tiếp
-          aria-label="Kết thúc cuộc gọi"
+          onClick={endCall}
+          aria-label="End call"
         >
           <PhoneOff size={iconSize} />
         </button>
       </div>
-      {/* Debug Info */}
+      {/* Debug Info */}{" "}
       <div className="absolute top-2 left-2 z-40 flex flex-col gap-1">
         <button
           onClick={() => setShowDebug(!showDebug)}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 text-xs rounded shadow"
+          className="bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] px-2 py-1 text-xs rounded shadow"
         >
-          {showDebug ? "Ẩn Debug" : "Hiện Debug"}
+          {showDebug ? "Hide Debug" : "Show Debug"}
         </button>
       </div>
       {showDebug && (
-        <div className="absolute top-10 left-2 bg-black/70 text-white p-2 text-xs z-40 rounded max-w-xs shadow-lg">
+        <div className="absolute top-10 left-2 bg-[var(--background)]/90 border border-[var(--border)] text-[var(--foreground)] p-2 text-xs z-40 rounded max-w-xs shadow-lg">
           <p>
             WS: {connectionStatus} (State: {readyState})
           </p>{" "}

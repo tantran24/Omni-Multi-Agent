@@ -11,11 +11,16 @@ const api = axios.create({
   },
 });
 
-export const chatWithLLM = async (message, formData) => {
+export const chatWithLLM = async (message, formData, sessionId = null) => {
   try {
     let response;
 
     if (formData) {
+      // Add session_id to form data if provided
+      if (sessionId) {
+        formData.append("session_id", sessionId);
+      }
+
       const formApi = axios.create({
         baseURL: API_URL,
         headers: {
@@ -24,7 +29,11 @@ export const chatWithLLM = async (message, formData) => {
       });
       response = await formApi.post("/chat-with-image", formData);
     } else {
-      response = await api.post("/chat", { message });
+      const payload = { message };
+      if (sessionId) {
+        payload.session_id = sessionId;
+      }
+      response = await api.post("/chat", payload);
     }
 
     console.log("API Response:", response.data);
@@ -36,6 +45,7 @@ export const chatWithLLM = async (message, formData) => {
     return {
       response: response.data.response || "",
       image: response.data.image,
+      sessionId: response.data.session_id,
     };
   } catch (error) {
     console.error("API Error:", error);

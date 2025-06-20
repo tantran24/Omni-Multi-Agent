@@ -6,17 +6,19 @@ from langchain_qdrant import QdrantVectorStore
 from langchain_core.vectorstores import VectorStoreRetriever
 
 from .base_agent import BaseAgent
+from .memory_mixin import MemoryMixin
 import logging
 from config.prompts import get_RAG_system_prompt
 
 logger = logging.getLogger(__name__)
 
 
-class RAGAgent(BaseAgent):
+class RAGAgent(BaseAgent, MemoryMixin):
     """Retrieval-Augmented Generation (RAG) Agent with LangGraph"""
 
     def __init__(self, vectorstore: QdrantVectorStore, llm=None):
         super().__init__(llm)
+        MemoryMixin.__init__(self)
         self.vectorstore = vectorstore
         self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 6})
         self.agent_type = "rag"
@@ -60,7 +62,9 @@ class RAGAgent(BaseAgent):
         builder.set_finish_point("generate")
         return builder.compile()
 
-    async def ainvoke(self, message: HumanMessage, chat_history: list[BaseMessage] = None) -> dict:
+    async def ainvoke(
+        self, message: HumanMessage, chat_history: list[BaseMessage] = None
+    ) -> dict:
         if chat_history is None:
             chat_history = []
 
@@ -108,7 +112,9 @@ async def main():
         end_time = time.time()
         elapsed_seconds = end_time - start_time
         elapsed_minutes = elapsed_seconds / 60
-        print("\n=============================================================================")
+        print(
+            "\n============================================================================="
+        )
         print(
             f"\n====>>> Chatbot Response ==== Processed in {elapsed_minutes:.2f} minutes ({elapsed_seconds:.2f} seconds).\n"
         )

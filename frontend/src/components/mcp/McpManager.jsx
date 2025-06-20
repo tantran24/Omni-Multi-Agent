@@ -72,6 +72,7 @@ const McpManager = ({ isOpen, onClose }) => {
     <>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          {" "}
           <div className="bg-[var(--background)] rounded-lg p-6 max-w-2xl w-full mx-4 flex flex-col max-h-[80vh]">
             {/* Make this header sticky */}
             <div className="flex justify-between items-center mb-4 sticky top-0 bg-[var(--background)] z-10 py-4">
@@ -97,7 +98,7 @@ const McpManager = ({ isOpen, onClose }) => {
               </button>
             </div>
 
-            <div className="overflow-y-auto space-y-6">
+            <div className="space-y-6">
               {error && (
                 <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">
                   {error}
@@ -122,12 +123,9 @@ const McpManager = ({ isOpen, onClose }) => {
                           className="p-4 border border-[var(--border)] rounded-lg flex justify-between items-start"
                         >
                           <div>
-                            <h4 className="font-medium">{name}</h4>
+                            <h4 className="font-medium">{name}</h4>{" "}
                             <p className="text-sm text-[var(--muted-foreground)]">
                               {config.url ? `URL: ${config.url}` : "Local tool"}
-                            </p>
-                            <p className="text-sm text-[var(--muted-foreground)]">
-                              Transport: {config.transport || "stdio"}
                             </p>
                           </div>
                           <button
@@ -153,28 +151,28 @@ const McpManager = ({ isOpen, onClose }) => {
                         </div>
                       ))}
                     </div>
-                  </div>
-
+                  </div>{" "}
                   {/* Available Tools Section */}
                   <div>
                     <h3 className="text-lg font-semibold mb-3">
                       Available Tools
                     </h3>
-                    <div className="grid grid-cols-1 gap-4">
-                      {tools.map((tool) => (
-                        <div
-                          key={tool.name}
-                          className="p-4 border border-[var(--border)] rounded-lg"
-                        >
-                          <h4 className="font-medium">{tool.name}</h4>
-                          <p className="text-sm text-[var(--muted-foreground)]">
-                            {tool.description}
-                          </p>
-                        </div>
-                      ))}
+                    <div className="max-h-60 overflow-y-auto pr-2">
+                      <div className="grid grid-cols-1 gap-4">
+                        {tools.map((tool) => (
+                          <div
+                            key={tool.name}
+                            className="p-4 border border-[var(--border)] rounded-lg"
+                          >
+                            <h4 className="font-medium">{tool.name}</h4>
+                            <p className="text-sm text-[var(--muted-foreground)]">
+                              {tool.description}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-
                   {/* Add Configuration Form */}
                   <div>
                     <h3 className="text-lg font-semibold mb-3">

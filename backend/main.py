@@ -8,6 +8,7 @@ import os
 import logging
 from services.mcp_service import detach_mcp_service
 from mcp_core.mcp_initializer import apply_mcp_fixes
+from database.connection import init_database, close_database
 from contextlib import asynccontextmanager
 
 logging.basicConfig(level=logging.INFO)
@@ -16,7 +17,16 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Initializing MCP service...")
+    logger.info("Initializing application...")
+
+    # Initialize database
+    try:
+        await init_database()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Error initializing database: {e}")
+
+    # Initialize MCP service
     try:
         apply_mcp_fixes()
         await detach_mcp_service.initialize_client()
@@ -27,7 +37,16 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    logger.info("Shutting down MCP service...")
+    logger.info("Shutting down application...")
+
+    # Close database connections
+    try:
+        await close_database()
+        logger.info("Database connections closed")
+    except Exception as e:
+        logger.error(f"Error closing database: {e}")
+
+    # Close MCP service
     try:
         if hasattr(detach_mcp_service, "aclose"):
             await detach_mcp_service.aclose()
