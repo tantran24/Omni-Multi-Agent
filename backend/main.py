@@ -97,6 +97,16 @@ async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Docker and monitoring."""
+    return {
+        "status": "healthy",
+        "service": "omni-multi-agent-backend",
+        "version": "1.0.0"
+    }
+
+
 app.include_router(router, prefix="/api")
 
 if __name__ == "__main__":
