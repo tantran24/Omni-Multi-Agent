@@ -54,42 +54,85 @@ class BaseAgent:
                     ]
                 }
 
+            # Ensure response has content and it's a string
+            response_content = getattr(response, "content", None)
+            if response_content is None:
+                logger.warning("Response object has no content attribute")
+                response_content = ""
+            elif not isinstance(response_content, str):
+                logger.warning(
+                    f"Response content is not a string (type: {type(response_content)})"
+                )
+                response_content = str(response_content)
+
             processed_content, artifacts = await ToolHandler.process_tool_calls(
-                response.content, self.tools
+                response_content, self.tools
             )
 
             logger.info(
-                f"{self.agent_name} response content: {response.content[:200]}..."
+                f"{self.agent_name} response content: {response_content[:200]}..."
             )
             if artifacts:
                 logger.info(
                     f"{self.agent_name} generated artifacts: {list(artifacts.keys())}"
                 )
 
-            if artifacts:
-                tool_results_message = f"""Your previous response contained tool calls. Here are the results:
-{processed_content}
+            # Check if we have valid tool results before proceeding
+            has_successful_tools = (
+                any(
+                    not str(result).startswith("[Tool Error:")
+                    for result in artifacts.values()
+                )
+                if artifacts
+                else False
+            )
 
-Tool Results:
+            if artifacts and has_successful_tools:
+                tool_results_message = """Bạn đã sử dụng các công cụ tìm kiếm và nhận được kết quả. Dưới đây là thông tin từ các công cụ:
+
 """
                 for tool_name, result in artifacts.items():
-                    tool_results_message += f"- {tool_name}: {result}\n"
+                    # Truncate long results to prevent overwhelming the model
+                    result_str = str(result)
+                    if len(result_str) > 2000:
+                        result_preview = result_str[:2000] + "... [đã cắt ngắn]"
+                    else:
+                        result_preview = result_str
+                    tool_results_message += (
+                        f"Kết quả từ {tool_name}:\n{result_preview}\n\n"
+                    )
 
-                tool_results_message += "\nPlease provide a final response that incorporates these tool results appropriately."
+                tool_results_message += """Bây giờ hãy tổng hợp thông tin từ các kết quả tìm kiếm trên để đưa ra câu trả lời đầy đủ, chính xác và có cấu trúc cho người dùng. 
 
-                messages.append(AIMessage(content=response.content))
+Yêu cầu:
+- Tổng hợp thông tin từ nhiều nguồn
+- Trình bày rõ ràng, có cấu trúc
+- Trích dẫn nguồn khi có thể
+- Đưa ra kết luận dựa trên bằng chứng
+- KHÔNG gọi lại các công cụ tìm kiếm nữa"""
+
+                messages.append(AIMessage(content=response_content))
                 messages.append(HumanMessage(content=tool_results_message))
 
                 final_response = await self.llm.invoke(messages)
                 if final_response:
-                    messages = [AIMessage(content=final_response.content)]
+                    final_content = getattr(final_response, "content", "")
+                    if not isinstance(final_content, str):
+                        final_content = str(final_content)
+                    messages = [AIMessage(content=final_content)]
                     return {"messages": messages, "artifacts": artifacts}
+            elif artifacts:
+                # All tools failed, return error message
+                logger.warning(f"{self.agent_name} - All tool calls failed")
+                error_message = "I tried to use some tools to help with your request, but they encountered errors. Let me provide a response based on my knowledge instead."
+                messages = [AIMessage(content=error_message)]
+                return {"messages": messages, "artifacts": artifacts}
 
             messages = [AIMessage(content=processed_content)]
             return {"messages": messages, "artifacts": artifacts}
 
         except Exception as e:
-            logger.error(f"Error in agent invocation: {e}")
+            logger.error(f"Error in agent invocation: {e}", exc_info=True)
             return {
                 "messages": [AIMessage(content=f"I encountered an error: {str(e)}")]
             }

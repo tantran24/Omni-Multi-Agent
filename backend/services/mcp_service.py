@@ -203,17 +203,37 @@ class MCPService:
             return []
 
         try:
-            # Add timeout to prevent hanging
-            tools = await asyncio.wait_for(
-                self.client.get_tools() if self.client else [],
-                timeout=10.0,  # 10 second timeout for getting tools
-            )
-            return tools
-        except asyncio.TimeoutError:
-            logger.error("Getting MCP tools timed out after 10 seconds")
+            # Add timeout to prevent hanging and implement retry logic
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    tools = await asyncio.wait_for(
+                        self.client.get_tools() if self.client else [],
+                        timeout=10.0,  # 10 second timeout for getting tools
+                    )
+                    return tools
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        f"Getting MCP tools timed out on attempt {attempt + 1}/{max_retries}"
+                    )
+                    if attempt == max_retries - 1:
+                        logger.error("Getting MCP tools timed out after all retries")
+                        return []
+                    await asyncio.sleep(1)  # Brief delay before retry
+                except Exception as e:
+                    logger.error(
+                        f"Error retrieving tools from MCP client on attempt {attempt + 1}: {e}"
+                    )
+                    if attempt == max_retries - 1:
+                        logger.error(
+                            "Failed to get MCP tools after all retries", exc_info=True
+                        )
+                        return []
+                    await asyncio.sleep(1)  # Brief delay before retry
+
             return []
         except Exception as e:
-            logger.error(f"Error retrieving tools from MCP client: {e}", exc_info=True)
+            logger.error(f"Unexpected error in get_tools: {e}", exc_info=True)
             return []
 
     async def _refresh_client(self) -> None:

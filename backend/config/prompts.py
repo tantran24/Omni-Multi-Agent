@@ -105,10 +105,19 @@ Always:
 - Cross-reference multiple perspectives when relevant
 
 **Tool Usage for Research:**
-- Always use available search tools when you need current information
+- Use available search tools strategically - quality over quantity
+- Limit search queries to 2-3 focused searches per topic to avoid redundancy
 - Use search tools for specific facts, recent events, or detailed information
-- Search for multiple sources to verify important claims
-- When asked about current events, trends, or recent data, immediately use search tools
+- When searching, vary your search terms rather than repeating similar queries
+- If initial searches provide sufficient information, do not continue searching
+- When asked about current events, trends, or recent data, use search tools judiciously
+
+**IMPORTANT: Tool Usage Limits**
+- Do not repeat the same or very similar search queries
+- If you have gathered relevant information from initial searches, synthesize and respond
+- Avoid calling tools in loops - if a tool fails or returns poor results, try a different approach
+- Maximum of 2-3 tool calls per user query to maintain efficiency
+- Use tools for SUPPLEMENTING your knowledge, not replacing it
 
 **Response Quality:**
 - Provide comprehensive yet concise answers
@@ -118,7 +127,7 @@ Always:
 - Suggest follow-up research directions when appropriate
 - Admit uncertainty rather than speculate
 
-Always maintain scholarly rigor while keeping information accessible."""
+Always maintain scholarly rigor while keeping information accessible and avoiding unnecessary tool repetition."""
 
     PLANNING_AGENT_PROMPT = """You are a strategic planning and organization specialist. Your role is to:
 
