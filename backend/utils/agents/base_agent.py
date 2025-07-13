@@ -28,6 +28,9 @@ class BaseAgent:
         agent_tools = await get_tools_for_agent(self.agent_type)
         mcp_tools = await ToolHandler.initialize_tools()
         self.tools = agent_tools + mcp_tools
+        logger.info(
+            f"{self.agent_name} initialized with {len(self.tools)} tools: {[tool.name for tool in self.tools]}"
+        )
 
     async def invoke(
         self, message: HumanMessage, chat_history: Optional[List[BaseMessage]] = None
@@ -54,7 +57,15 @@ class BaseAgent:
             processed_content, artifacts = await ToolHandler.process_tool_calls(
                 response.content, self.tools
             )
-            
+
+            logger.info(
+                f"{self.agent_name} response content: {response.content[:200]}..."
+            )
+            if artifacts:
+                logger.info(
+                    f"{self.agent_name} generated artifacts: {list(artifacts.keys())}"
+                )
+
             if artifacts:
                 tool_results_message = f"""Your previous response contained tool calls. Here are the results:
 {processed_content}
@@ -63,17 +74,17 @@ Tool Results:
 """
                 for tool_name, result in artifacts.items():
                     tool_results_message += f"- {tool_name}: {result}\n"
-                
+
                 tool_results_message += "\nPlease provide a final response that incorporates these tool results appropriately."
-                
+
                 messages.append(AIMessage(content=response.content))
                 messages.append(HumanMessage(content=tool_results_message))
-                
+
                 final_response = await self.llm.invoke(messages)
                 if final_response:
                     messages = [AIMessage(content=final_response.content)]
                     return {"messages": messages, "artifacts": artifacts}
-            
+
             messages = [AIMessage(content=processed_content)]
             return {"messages": messages, "artifacts": artifacts}
 

@@ -71,18 +71,32 @@ class ToolHandler:
             artifacts = {}
 
         if not tools or not content:
+            logger.debug(
+                f"Tool processing: tools={len(tools) if tools else 0}, content_length={len(content) if content else 0}"
+            )
             return content, artifacts
 
-        tool_pattern = r"\[Tool Used\]\s*(?P<n>[\w-]+)\((?P<args>[^)]*)\)"
+        # Multiple patterns to catch different tool calling formats
+        patterns = [
+            r"\[Tool Used\]\s*(?P<n>[\w-]+)\((?P<args>[^)]*)\)",  # [Tool Used] pattern
+            r"(?P<n>tavily-search|tavily-extract|tavily-crawl|tavily-map)\((?P<args>[^)]*)\)",  # Direct tool calls
+        ]
+
         tool_map = {t.name: t for t in tools}
+        logger.debug(f"Available tools: {list(tool_map.keys())}")
 
         async def handle_tool_match(match) -> str:
             try:
                 tool_name = match.group("n")
                 args_str = match.group("args").strip()
 
+                logger.info(f"Processing tool call: {tool_name}({args_str})")
+
                 tool = tool_map.get(tool_name)
                 if not tool:
+                    logger.warning(
+                        f"Tool {tool_name} not found in available tools: {list(tool_map.keys())}"
+                    )
                     return match.group(0)
 
                 # Parse arguments
@@ -97,23 +111,19 @@ class ToolHandler:
                 # Invoke tool
                 result = await ToolHandler.ainvoke_tool(tool, args)
                 artifacts[tool_name] = result
+                logger.info(
+                    f"Tool {tool_name} executed successfully, result length: {len(str(result))}"
+                )
 
                 return f"[Tool Result: {tool_name}]"
             except Exception as e:
                 logger.error(f"Error processing tool call: {e}")
                 return f"Error: {str(e)}"
 
-        # Process [Tool Used] pattern
-        matches = list(re.finditer(tool_pattern, content))
-        for match in matches:
-            replacement = await handle_tool_match(match)
-            content = content[: match.start()] + replacement + content[match.end() :]
-
-        # Process direct tool calls
-        tool_names = "|".join(re.escape(name) for name in tool_map.keys())
-        if tool_names:
-            direct_pattern = f"(?P<n>{tool_names})\\((?P<args>[^)]*)\\)"
-            matches = list(re.finditer(direct_pattern, content))
+        # Process all patterns
+        for pattern in patterns:
+            matches = list(re.finditer(pattern, content))
+            logger.debug(f"Pattern {pattern}: found {len(matches)} matches")
             for match in matches:
                 replacement = await handle_tool_match(match)
                 content = (

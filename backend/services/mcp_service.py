@@ -56,7 +56,12 @@ class MCPService:
     def _create_client(self) -> None:
         """Create a new MCP client with current configs"""
         logger.info(f"Creating MCP client object with configs: {self.configs}")
-        self.client = MultiServerMCPClient(self.configs)
+
+        # Clean the configs to remove unsupported parameters
+        cleaned_configs = self._clean_configs_for_client(self.configs)
+        logger.info(f"Cleaned configs for client: {cleaned_configs}")
+
+        self.client = MultiServerMCPClient(cleaned_configs)
         self.initialized = False
 
     async def initialize_client(self) -> bool:
@@ -67,15 +72,83 @@ class MCPService:
                 logger.error("MCP Client object not created before initialization.")
                 return False
             try:
-                logger.info("Entering MCP client context (__aenter__)...")
-                await self.client.__aenter__()
-                tools = self.client.get_tools()
-                logger.info(f"MCP client __aenter__ successful, tools available.")
+                logger.info("Initializing MCP client...")
+                # Add timeout to prevent hanging
+                tools = await asyncio.wait_for(
+                    self.client.get_tools(), timeout=30.0  # 30 second timeout
+                )
+                logger.info(
+                    f"MCP client initialized successfully, {len(tools)} tools available."
+                )
+
+                # Log tool details for debugging
+                for tool in tools:
+                    logger.info(f"  - Tool: {tool.name} - {tool.description}")
+
                 self.initialized = True
-                logger.info("MCP client initialized successfully.")
                 return True
+            except asyncio.TimeoutError:
+                logger.error("MCP client initialization timed out after 30 seconds")
+                self.initialized = False
+                return False
             except Exception as e:
-                logger.error(f"Error during MCP client __aenter__: {e}", exc_info=True)
+                error_msg = str(e)
+
+                # Provide more specific error messages for common issues
+                if "Connection closed" in error_msg:
+                    logger.error(
+                        "MCP server connection closed unexpectedly. This often indicates:"
+                    )
+
+                    # Check if any configs use stdio transport (local servers)
+                    has_stdio = any(
+                        config.get("transport") == "stdio"
+                        for config in self.configs.values()
+                    )
+                    # Check if any configs use sse transport (remote servers)
+                    has_sse = any(
+                        config.get("transport") == "sse"
+                        for config in self.configs.values()
+                    )
+
+                    if has_stdio:
+                        logger.error("  For local MCP servers (stdio transport):")
+                        logger.error(
+                            "    - Check if the command/executable exists and is accessible"
+                        )
+                        logger.error(
+                            "    - Verify environment variables are set correctly"
+                        )
+                        logger.error(
+                            "    - Ensure the MCP server starts without errors"
+                        )
+
+                    if has_sse:
+                        logger.error("  For remote MCP servers (sse transport):")
+                        logger.error("    - Check if the server URL is accessible")
+                        logger.error(
+                            "    - Verify the server is running and responding"
+                        )
+                        logger.error(
+                            "    - Check network connectivity and firewall settings"
+                        )
+                        logger.error("    - Ensure API keys/credentials are valid")
+
+                elif "not found" in error_msg or "No such file" in error_msg:
+                    logger.error("Command/file not found error:")
+                    logger.error("  - Check if the specified command exists in PATH")
+                    logger.error(
+                        "  - For npm packages, ensure they're installed globally or use npx"
+                    )
+                    logger.error("  - Verify file paths and permissions")
+                elif "Permission denied" in error_msg:
+                    logger.error("Permission error detected:")
+                    logger.error("  - Check file/command permissions")
+                    logger.error("  - Ensure the user has necessary access rights")
+
+                logger.error(
+                    f"Error during MCP client initialization: {e}", exc_info=True
+                )
                 self.initialized = False
                 return False
 
@@ -83,19 +156,18 @@ class MCPService:
         """Gracefully close the MCP client."""
         async with self._lock:
             if self.client and self.initialized:
-                logger.info("Exiting MCP client context (__aexit__)...")
+                logger.info("Closing MCP client...")
                 try:
-                    await self.client.__aexit__(None, None, None)
-                    logger.info("MCP client exited successfully.")
+                    # With langchain-mcp-adapters 0.1.0, we don't need to call __aexit__
+                    # The client will be cleaned up automatically
+                    logger.info("MCP client closed successfully.")
                 except Exception as e:
-                    logger.error(
-                        f"Error during MCP client __aexit__: {e}", exc_info=True
-                    )
+                    logger.error(f"Error during MCP client close: {e}", exc_info=True)
                 finally:
                     self.initialized = False
             elif self.client and not self.initialized:
                 logger.info(
-                    "MCP client was created but not initialized, no __aexit__ needed."
+                    "MCP client was created but not initialized, no cleanup needed."
                 )
             else:
                 logger.info("No MCP client to close.")
@@ -121,14 +193,25 @@ class MCPService:
             logger.info(
                 "MCP client not initialized. Attempting to initialize in get_tools..."
             )
-            await self.initialize_client()
+            success = await self.initialize_client()
+            if not success:
+                logger.warning("Failed to initialize MCP client in get_tools")
+                return []
 
         if not self.initialized:
             logger.warning("MCP client failed to initialize when requesting tools.")
             return []
 
         try:
-            return self.client.get_tools() if self.client else []
+            # Add timeout to prevent hanging
+            tools = await asyncio.wait_for(
+                self.client.get_tools() if self.client else [],
+                timeout=10.0,  # 10 second timeout for getting tools
+            )
+            return tools
+        except asyncio.TimeoutError:
+            logger.error("Getting MCP tools timed out after 10 seconds")
+            return []
         except Exception as e:
             logger.error(f"Error retrieving tools from MCP client: {e}", exc_info=True)
             return []
@@ -150,6 +233,71 @@ class MCPService:
         logger.info("Attempting to initialize new MCP client after refresh...")
         await self.initialize_client()
         logger.info("MCP client refresh process completed.")
+
+    def _clean_configs_for_client(self, configs: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Clean MCP configurations by removing parameters not supported by langchain-mcp-adapters.
+
+        Supported parameters for stdio transport:
+        - command (required)
+        - args
+        - env
+        - transport
+
+        Supported parameters for sse transport:
+        - url (required)
+        - transport
+        """
+        cleaned = {}
+
+        for name, config in configs.items():
+            if not isinstance(config, dict):
+                continue
+
+            # Skip disabled configurations
+            if config.get("disabled", False):
+                logger.info(f"Skipping disabled MCP server: {name}")
+                continue
+
+            cleaned_config = {}
+            transport = config.get("transport", "stdio")
+
+            if transport == "stdio":
+                # For stdio transport, only keep supported parameters
+                supported_params = ["command", "args", "env", "transport"]
+                for param in supported_params:
+                    if param in config:
+                        cleaned_config[param] = config[param]
+
+                # Ensure command is present (required for stdio)
+                if "command" not in cleaned_config:
+                    logger.warning(
+                        f"Skipping MCP server {name}: missing required 'command' parameter"
+                    )
+                    continue
+
+            elif transport == "sse":
+                # For sse transport, only keep supported parameters
+                supported_params = ["url", "transport"]
+                for param in supported_params:
+                    if param in config:
+                        cleaned_config[param] = config[param]
+
+                # Ensure url is present (required for sse)
+                if "url" not in cleaned_config:
+                    logger.warning(
+                        f"Skipping MCP server {name}: missing required 'url' parameter"
+                    )
+                    continue
+            else:
+                logger.warning(
+                    f"Skipping MCP server {name}: unsupported transport '{transport}'"
+                )
+                continue
+
+            cleaned[name] = cleaned_config
+
+        return cleaned
 
 
 detach_mcp_service = MCPService()

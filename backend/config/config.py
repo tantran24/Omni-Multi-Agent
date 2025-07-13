@@ -20,7 +20,7 @@ class Config:
 
     # Google AI Studio Configuration
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-    GOOGLE_MODEL = os.getenv("GOOGLE_MODEL", "gemini-2.5-flash-preview-05-20")
+    GOOGLE_MODEL = os.getenv("GOOGLE_MODEL", "gemini-2.5-flash")
     GOOGLE_IMAGE_GENERATOR_MODEL = os.getenv(
         "GOOGLE_IMAGE_GENERATOR_MODEL", "gemini-2.0-flash-preview-image-generation"
     )

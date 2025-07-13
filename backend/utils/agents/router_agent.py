@@ -47,39 +47,42 @@ class RouterAgent(BaseAgent, MemoryMixin):
         except Exception as e:
             logger.error(f"Error checking MCP service: {e}")
 
-    def get_system_prompt(self) -> str:
-        """Get the specialized router prompt including MCP tool names"""
-        prompt = get_router_prompt()
+    def __init__(self):
+        super().__init__()
+        self.mcp_tools_info = ""  # Cache for MCP tools information
 
-        self._ensure_mcp_initialized()
-
-        if detach_mcp_service.initialized:
-            try:
-                mcp_tools = []
-                if (
-                    hasattr(detach_mcp_service.client, "tools")
-                    and detach_mcp_service.client.tools
-                ):
-                    mcp_tools = detach_mcp_service.client.tools
-
+    async def initialize_mcp_tools_info(self):
+        """Initialize MCP tools information for use in prompts"""
+        try:
+            if detach_mcp_service.initialized:
+                mcp_tools = await detach_mcp_service.get_tools()
                 if mcp_tools:
                     tool_names = [t.name for t in mcp_tools]
-                    prompt += "\n\nAvailable MCP tools: " + ", ".join(tool_names)
-                    prompt += "\n\nMCP Tool Details:"
+                    self.mcp_tools_info = "\n\nAvailable MCP tools: " + ", ".join(
+                        tool_names
+                    )
+                    self.mcp_tools_info += "\n\nMCP Tool Details:"
                     for tool in mcp_tools:
-                        prompt += f"\n- {tool.name}: {tool.description}"
+                        self.mcp_tools_info += f"\n- {tool.name}: {tool.description}"
                         if hasattr(tool, "args_schema") and tool.args_schema:
                             try:
                                 param_names = list(
                                     tool.args_schema.__annotations__.keys()
                                 )
                                 if param_names:
-                                    prompt += f" (Parameters: {param_names})"
+                                    self.mcp_tools_info += (
+                                        f" (Parameters: {param_names})"
+                                    )
                             except Exception:
                                 pass
-            except Exception as e:
-                logger.error(f"Error getting MCP tool information: {e}")
+        except Exception as e:
+            logger.error(f"Error initializing MCP tools info: {e}")
+            self.mcp_tools_info = ""
 
+    def get_system_prompt(self) -> str:
+        """Get the specialized router prompt including MCP tool names"""
+        prompt = get_router_prompt()
+        prompt += self.mcp_tools_info
         return prompt
 
     def create_specialized_agent(self, agent_type: str) -> BaseAgent:
@@ -134,7 +137,18 @@ class MathAgent(BaseAgent):
         self.agent_name = "Math Agent"
 
     def get_system_prompt(self) -> str:
-        return get_math_agent_prompt()
+        """Get the specialized math prompt including tool descriptions"""
+        system_prompt = get_math_agent_prompt()
+        if self.tools:
+            tool_lines = [f"- {tool.name}: {tool.description}" for tool in self.tools]
+            tools_desc = "\n\nYou have access to the following tools:\n" + "\n".join(
+                tool_lines
+            )
+            tools_desc += '\n\nUse tools by indicating "[Tool Used] tool_name(args)" in your response.'
+        else:
+            tools_desc = ""
+
+        return f"{system_prompt}{tools_desc}"
 
 
 class ResearchAgent(BaseAgent):
@@ -146,7 +160,18 @@ class ResearchAgent(BaseAgent):
         self.agent_name = "Research Agent"
 
     def get_system_prompt(self) -> str:
-        return get_research_agent_prompt()
+        """Get the specialized research prompt including tool descriptions"""
+        system_prompt = get_research_agent_prompt()
+        if self.tools:
+            tool_lines = [f"- {tool.name}: {tool.description}" for tool in self.tools]
+            tools_desc = "\n\nYou have access to the following tools:\n" + "\n".join(
+                tool_lines
+            )
+            tools_desc += '\n\nUse tools by indicating "[Tool Used] tool_name(args)" in your response.'
+        else:
+            tools_desc = ""
+
+        return f"{system_prompt}{tools_desc}"
 
 
 class PlanningAgent(BaseAgent):
@@ -158,7 +183,18 @@ class PlanningAgent(BaseAgent):
         self.agent_name = "Planning Agent"
 
     def get_system_prompt(self) -> str:
-        return get_planning_agent_prompt()
+        """Get the specialized planning prompt including tool descriptions"""
+        system_prompt = get_planning_agent_prompt()
+        if self.tools:
+            tool_lines = [f"- {tool.name}: {tool.description}" for tool in self.tools]
+            tools_desc = "\n\nYou have access to the following tools:\n" + "\n".join(
+                tool_lines
+            )
+            tools_desc += '\n\nUse tools by indicating "[Tool Used] tool_name(args)" in your response.'
+        else:
+            tools_desc = ""
+
+        return f"{system_prompt}{tools_desc}"
 
 
 class ConversationAssistantAgent(BaseAgent):

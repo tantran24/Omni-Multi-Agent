@@ -41,6 +41,11 @@ async def create_agent_graph():
 
     await asyncio.gather(*(agent.initialize_tools() for agent in agents.values()))
 
+    # Initialize MCP tools information for router agent
+    router_agent = agents["router"]
+    if hasattr(router_agent, "initialize_mcp_tools_info"):
+        await router_agent.initialize_mcp_tools_info()
+
     workflow = StateGraph(AgentState)
 
     async def create_agent_node(agent_name: str):
@@ -163,6 +168,7 @@ async def create_agent_graph():
         logger.error(f"Graph compilation error: {str(e)}")
         raise
 
+
 async def create_conversation_agent_graph():
     """Create an async-aware directed graph for agent routing and execution"""
     agents = {
@@ -177,6 +183,11 @@ async def create_conversation_agent_graph():
     import asyncio
 
     await asyncio.gather(*(agent.initialize_tools() for agent in agents.values()))
+
+    # Initialize MCP tools information for router agent
+    router_agent = agents["router"]
+    if hasattr(router_agent, "initialize_mcp_tools_info"):
+        await router_agent.initialize_mcp_tools_info()
 
     workflow = StateGraph(AgentState)
 
