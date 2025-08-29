@@ -22,7 +22,7 @@ class Config:
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
     GOOGLE_MODEL = os.getenv("GOOGLE_MODEL", "gemini-2.5-flash")
     GOOGLE_IMAGE_GENERATOR_MODEL = os.getenv(
-        "GOOGLE_IMAGE_GENERATOR_MODEL", "gemini-2.0-flash-preview-image-generation"
+        "GOOGLE_IMAGE_GENERATOR_MODEL", "gemini-2.5-flash-image-preview"
     )
 
     # Eleven Labs Configuration
