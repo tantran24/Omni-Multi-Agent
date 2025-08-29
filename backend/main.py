@@ -7,7 +7,6 @@ from config.config import Config
 import os
 import logging
 from services.mcp_service import detach_mcp_service
-from mcp_core.mcp_initializer import apply_mcp_fixes
 from database.connection import init_database, close_database
 from contextlib import asynccontextmanager
 
@@ -28,7 +27,6 @@ async def lifespan(app: FastAPI):
 
     # Initialize MCP service
     try:
-        apply_mcp_fixes()
         await detach_mcp_service.initialize_client()
         tools = await detach_mcp_service.get_tools()
         logger.info(f"MCP service initialized with {len(tools)} tools")
